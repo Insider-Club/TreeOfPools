@@ -9,6 +9,7 @@ mcore_kgji6o0_
 env.json
 remappings.json
 .prettierrc
+package-lock.json
 
 #Hardhat files
 cache
