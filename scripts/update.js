@@ -9,7 +9,7 @@ async function main() {
 
   const rop = await upgrades.upgradeProxy(PROXY, ROP);
 
-  console.log("ROP upgraded");
+  console.log("ROP successfully upgraded!");
 }
 
 main();

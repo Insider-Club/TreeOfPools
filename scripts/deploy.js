@@ -36,6 +36,8 @@ async function deploy() {
   await rop.connect(owner).transferOwnership(msig.address);
 
   console.log("ROP deployed to:", rop.address);
+  console.log("MSig deployed to:", msig.address);
+  console.log("Ranks deployed to:", ranks.address);
 }
 
 async function main(){
