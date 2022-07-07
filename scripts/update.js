@@ -1,8 +1,9 @@
 const { ethers, upgrades } = require("hardhat");
-
-const PROXY = "0xA6BE3e7e399ECca5bDa856fEaC18dB40848B83D3";
+const readline = require("readline-sync");
 
 async function main() {
+  const PROXY = readline.question("Enter the proxy address: ");
+
   const ROP = await ethers.getContractFactory("RootOfPools_v013");
   const owner = await ethers.getSigner();
 

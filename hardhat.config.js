@@ -24,6 +24,26 @@ module.exports = {
       accounts: [PK],
       gas: 21000000,
     },
+    eth: {
+      url: `https://eth-mainnet.public.blastapi.io`,
+      accounts: [PK],
+      gas: 21000000,
+    },
+    bsc: {
+      url: `https://bsc-dataseed2.binance.org`,
+      accounts: [PK],
+      gas: 21000000,
+    },
+    polygon: {
+      url: `https://polygon-mainnet.public.blastapi.io`,
+      accounts: [PK],
+      gas: 21000000,
+    },
+    moonbeam: {
+      url: `https://moonbeam.public.blastapi.io`,
+      accounts: [PK],
+      gas: 21000000,
+    },
   },
   etherscan: {
     apiKey: TBSC_API_KEY,
