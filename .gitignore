@@ -10,6 +10,7 @@ env.json
 remappings.json
 .prettierrc
 package-lock.json
+Release
 
 #Hardhat files
 cache

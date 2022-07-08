@@ -69,6 +69,26 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     }
 
     /// @notice The following functions provide access to the functionality of linked branch contracts
+
+    function dataImport(
+        string calldata name,
+        uint256 fundsRaised,
+        uint256 collectedCommission,
+        address[] calldata usersData,
+        uint256[] calldata usersAmount
+    ) public onlyOwner {
+        require(
+            _poolsTable[name] != address(0),
+            "ROOT: Selected pool does not exist!"
+        );
+        BranchOfPools(_poolsTable[name]).dataImport(
+            fundsRaised,
+            collectedCommission,
+            usersData,
+            usersAmount
+        );
+    }
+
     function changeTargetValue(string calldata name, uint256 value)
         public
         onlyOwner

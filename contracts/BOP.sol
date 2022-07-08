@@ -64,7 +64,7 @@ contract BranchOfPools is Ownable, Initializable {
     mapping(address => uint256) private _valueUSDList;
 
     mapping(address => uint256) private _usdEmergency;
-    address[] _listParticipants;
+    address[] public _listParticipants;
 
     mapping(address => uint256) private _openUnlocks;
     uint256[] private _unlocks;
@@ -392,6 +392,41 @@ contract BranchOfPools is Ownable, Initializable {
         emit TokenEntrusted(tokenAddr, amount);
     }
 
+    /// @notice Allows you to transfer data about pool members
+    /// This is necessary to perform token distribution in another network
+    /// @dev the arrays of participants and their investments must be the same size.
+    /// Make sure that the order of both arrays is correct,
+    /// if the order is wrong, the resulting investment table will not match reality
+    /// @param fundsRaised - Number of funds raised
+    /// @param collectedCommission - Number of commissions collected
+    /// @param usersData - Participant array
+    /// @param usersAmount - The size of participants' investments
+    function dataImport(
+        uint256 fundsRaised,
+        uint256 collectedCommission,
+        address[] calldata usersData,
+        uint256[] calldata usersAmount
+    ) public onlyState(State.Pause) onlyOwner returns (bool) {
+        require(
+            usersData.length == usersAmount.length,
+            "IMPORT: The number of input data does not match!"
+        );
+
+        for (uint256 i = 0; i < usersData.length; i++) {
+            _valueUSDList[usersData[i]] = usersAmount[i];
+        }
+
+        //Not all information is transferred to save gas
+        //Implications: It is not possible to fully import data from here
+        //_listParticipants = usersData;
+
+        _FUNDS_RAISED = fundsRaised;
+        _CURRENT_COMMISSION = collectedCommission;
+        _state = State.WaitingToken;
+
+        return true;
+    }
+
     /// @notice Allows users to brand the distributed tokens
     function claim() public onlyState(State.TokenDistribution) {
         require(
@@ -438,7 +473,7 @@ contract BranchOfPools is Ownable, Initializable {
     /// @notice Returns the amount of funds that the user deposited
     /// @param user - address user
     function myAllocation(address user) public view returns (uint256) {
-        return _usdEmergency[user];
+        return _valueUSDList[user];
     }
 
     /// @notice Returns the number of tokens the user can take at the moment
