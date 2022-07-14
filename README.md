@@ -76,6 +76,25 @@ npx hardhat run --network <testbsc/bsc/eth/polygon/moonbeam> scripts/update.js
 
 The script will ask you for the proxy address you want to update.
 
+#### Import/Export
+
+> Note: You can use this functionality to transfer user information between networks.
+
+To transfer information about the shares of crowdfunding participants, you can use the appropriate scripts.
+
+```bash
+npx hardhat run --network <testbsc/bsc/eth/polygon/moonbeam> scripts/exportData.js
+```
+This script collects all the necessary information and saves it to the usersData.json file.
+
+To import this information into a contract, use this script
+
+```bash
+npx hardhat run --network <testbsc/bsc/eth/polygon/moonbeam> scripts/importData.js
+```
+
+> Important: You must have TreeOfPools instances in both networks in order to pass information between networks correctly.
+
 #### Verify
 
 > Note: In order to verify contracts you need to have etherscan API keys. You can get them in your personal etherscan [account](https://etherscan.io/login).
