@@ -1,12 +1,13 @@
 const { ethers, upgrades } = require("hardhat");
+const readline = require("readline-sync");
 
 //Contract Address USD
-const USD = "0x78867BbEeF44f2326bF8DDd1941a4439382EF2A7";
+const USD = readline.question("Enter the USD contract address: ");
 
 //Addresses of MultiSignature owners
-const addr1 = "0x26e41CAc0524AaA4D3E1279EfE2FEE49eeDe4709";
-const addr2 = "0x889bb9292f93Af7B19136dc2D8Dca1c0951F5675";
-const addr3 = "0xCcC62370E3a2e3Cd0958dc2B0a49e552a5c727b6";
+const addr1 = readline.question("Enter the address of the 1st owner of the multisig: ");
+const addr2 = readline.question("Enter the address of the second owner of the multisig: ");
+const addr3 = readline.question("Enter the address of the 3rd owner of the multisig: ");
 
 
 async function RankDeploy(){
