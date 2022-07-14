@@ -487,6 +487,11 @@ contract BranchOfPools is Ownable, Initializable {
         return amount;
     }
 
+    /// @notice Returns the list of pool members
+    function getUsers() public view returns (address[] memory) {
+        return _listParticipants;
+    }
+
     /// @notice Auxiliary function for RootOfPools claimAll
     /// @param user - address user
     function isClaimable(address user) public view returns (bool) {

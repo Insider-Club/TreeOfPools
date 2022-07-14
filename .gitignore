@@ -11,6 +11,7 @@ remappings.json
 .prettierrc
 package-lock.json
 Release
+usersData.json
 
 #Hardhat files
 cache
