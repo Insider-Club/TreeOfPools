@@ -28,12 +28,6 @@ npm install
 
 Wait a bit, it might take a while to load all the necessary pokets :\
 
-Congratulations! You have installed everything you need. Now all that is left is to compile the project hardhat.
-
-```bash
-npx hardhat compile --force
-```
-
 Now you are almost ready to use TreeOfPools.
 
 #### Setting up personal data
@@ -48,6 +42,12 @@ Create an env.json file with the following format:
 ```
 
 > Note: Here you can also specify etherscan API keys for automatic verification of contracts. (These API keys will need to be reconciled with the hardhat configuration file). You can learn more about hardhat configuration [here](https://hardhat.org/config).
+
+Congratulations! You have installed everything you need. Now all that is left is to compile the project hardhat.
+
+```bash
+npx hardhat compile --force
+```
 
 ### Usage
 
