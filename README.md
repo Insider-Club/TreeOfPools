@@ -4,7 +4,7 @@ Tree Of Pools allows you to create crowdfunding pools, with a single access addr
 
 This project was created and is being improved by the Insider Club team. But we would be glad if you could join us and help us create a safe and open crowdfunding system.
 
-If you would like to contact us, please write to hello@insider.fun
+If you would like to contact us, please write to hello@myinsider.club
 ## Overview
 
 ### Installation
