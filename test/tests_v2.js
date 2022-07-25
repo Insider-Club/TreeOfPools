@@ -81,8 +81,6 @@ describe("Root of Pools", async function () {
       await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
-
-      //await root.connect(owner).createPool("Test", branch.address);
     });
 
     it("Check if the child contract is connected successfully", async function () {
@@ -514,6 +512,30 @@ describe("Root of Pools", async function () {
       await root.connect(dev).entrustToken("Test", token.address, 800);
 
       expect(await root.checkAllClaims(addr1.address)).to.equal(true);
+    });
+
+    it("Data import check", async function(){
+      let UsersNumber = 400; //Number of users participating in this test
+      users = [];
+      values = [];
+      FR = UsersNumber * 100; //Share of each participant after subtracting the commission of 100
+      CC = FR * 0,2;
+
+      for(i = 0; i < UsersNumber; i++){
+        users[i] = ethers.Wallet.createRandom().address;
+        values[i] = 100;
+        //console.log(users[i]);
+      }
+
+      tx = await root.populateTransaction.dataImport("Test", FR, CC, users, values);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      for(i = 0; i < UsersNumber; i++){
+        expect(await branch.myAllocation(users[i])).to.equal(100);
+      }
+
     });
   });
 });

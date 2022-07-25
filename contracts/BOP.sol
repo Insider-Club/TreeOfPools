@@ -397,13 +397,9 @@ contract BranchOfPools is Ownable, Initializable {
     /// @dev the arrays of participants and their investments must be the same size.
     /// Make sure that the order of both arrays is correct,
     /// if the order is wrong, the resulting investment table will not match reality
-    /// @param fundsRaised - Number of funds raised
-    /// @param collectedCommission - Number of commissions collected
     /// @param usersData - Participant array
     /// @param usersAmount - The size of participants' investments
-    function dataImport(
-        uint256 fundsRaised,
-        uint256 collectedCommission,
+    function importTable(
         address[] calldata usersData,
         uint256[] calldata usersAmount
     ) public onlyState(State.Pause) onlyOwner returns (bool) {
@@ -418,10 +414,48 @@ contract BranchOfPools is Ownable, Initializable {
 
         //Not all information is transferred to save gas
         //Implications: It is not possible to fully import data from here
+        //To capture all the information you need to replenish this array with the right users
         //_listParticipants = usersData;
 
+        return true;
+    }
+
+    /// @notice Allows you to transfer data about pool members
+    /// This is necessary to perform token distribution in another network
+    /// @param fundsRaised - Number of funds raised
+    function importFR(uint256 fundsRaised)
+        public
+        onlyState(State.Pause)
+        onlyOwner
+        returns (bool)
+    {
         _FUNDS_RAISED = fundsRaised;
+
+        return true;
+    }
+
+    /// @notice Allows you to transfer data about pool members
+    /// This is necessary to perform token distribution in another network
+    /// @param collectedCommission - Number of commissions collected
+    function importCC(uint256 collectedCommission)
+        public
+        onlyState(State.Pause)
+        onlyOwner
+        returns (bool)
+    {
         _CURRENT_COMMISSION = collectedCommission;
+
+        return true;
+    }
+
+    /// @notice Allows you to transfer data about pool members
+    /// This is necessary to perform token distribution in another network
+    function closeImport()
+        public
+        onlyState(State.Pause)
+        onlyOwner
+        returns (bool)
+    {
         _state = State.WaitingToken;
 
         return true;

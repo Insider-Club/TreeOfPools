@@ -81,11 +81,75 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
             _poolsTable[name] != address(0),
             "ROOT: Selected pool does not exist!"
         );
-        BranchOfPools(_poolsTable[name]).dataImport(
-            fundsRaised,
-            collectedCommission,
-            usersData,
-            usersAmount
+        require(
+            BranchOfPools(_poolsTable[name]).importTable(
+                usersData,
+                usersAmount
+            ),
+            "IMPORT: Failed to import a table of participants' shares"
+        );
+        require(
+            BranchOfPools(_poolsTable[name]).importFR(fundsRaised),
+            "IMPORT: Failed to write the fundsRaised variable"
+        );
+        require(
+            BranchOfPools(_poolsTable[name]).importCC(collectedCommission),
+            "IMPORT: Failed to write the collectedCommission variable"
+        );
+        require(
+            BranchOfPools(_poolsTable[name]).closeImport(),
+            "IMPORT: Failed to close import and change pool state"
+        );
+    }
+
+    function importTable(
+        string calldata name,
+        address[] calldata usersData,
+        uint256[] calldata usersAmount
+    ) public onlyOwner {
+        require(
+            _poolsTable[name] != address(0),
+            "ROOT: Selected pool does not exist!"
+        );
+        BranchOfPools(_poolsTable[name]).importTable(usersData, usersAmount);
+    }
+
+    function importFR(string calldata name, uint256 fundsRaised)
+        public
+        onlyOwner
+    {
+        require(
+            _poolsTable[name] != address(0),
+            "ROOT: Selected pool does not exist!"
+        );
+        require(
+            BranchOfPools(_poolsTable[name]).importFR(fundsRaised),
+            "IMPORT: Failed to write the fundsRaised variable"
+        );
+    }
+
+    function importCC(string calldata name, uint256 collectedCommission)
+        public
+        onlyOwner
+    {
+        require(
+            _poolsTable[name] != address(0),
+            "ROOT: Selected pool does not exist!"
+        );
+        require(
+            BranchOfPools(_poolsTable[name]).importCC(collectedCommission),
+            "IMPORT: Failed to write the collectedCommission variable"
+        );
+    }
+
+    function closeImport(string calldata name) public onlyOwner {
+        require(
+            _poolsTable[name] != address(0),
+            "ROOT: Selected pool does not exist!"
+        );
+        require(
+            BranchOfPools(_poolsTable[name]).closeImport(),
+            "IMPORT: Failed to close import and change pool state"
         );
     }
 
