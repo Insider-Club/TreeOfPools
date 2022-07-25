@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GNU GPLv3
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";

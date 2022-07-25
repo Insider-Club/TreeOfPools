@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GNU GPLv3
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.2;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
@@ -203,6 +203,10 @@ contract BranchOfPools is Ownable, Initializable {
     }
 
     /// @notice Returns the deposited funds to the caller
+    /// @dev This is a bad way to write a transaction check,
+    /// but in this case we are forced not to use require because of the usdt token implementation,
+    /// which does not return a result. And to keep flexibility in terms of using different ERC20,
+    /// we have to do it :\
     function paybackEmergency() public onlyState(State.Emergency) {
         uint256 usdT = _usdEmergency[tx.origin];
 
@@ -212,9 +216,18 @@ contract BranchOfPools is Ownable, Initializable {
             revert("You have no funds to withdraw!");
         }
 
+        uint256 beforeBalance = ERC20(_usd).balanceOf(tx.origin);
+
         if (usdT != 0) {
             ERC20(_usd).transfer(tx.origin, usdT);
         }
+
+        uint256 afterBalance = ERC20(_usd).balanceOf(tx.origin);
+
+        require(
+            beforeBalance + usdT == afterBalance,
+            "PAYBACK: Something went wrong."
+        );
 
         emit FundsReturned(tx.origin, usdT);
     }
