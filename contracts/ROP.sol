@@ -250,7 +250,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     function prepClaimAll(address user)
         external
         view
-        returns (address[] memory)
+        returns (address[] memory pools)
     {
         address[] memory out;
         for (uint256 i; i < Pools.length; i++) {
@@ -258,6 +258,8 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
                 out[i] = Pools[i].pool;
             }
         }
+
+        return pools;
     }
 
     ///@dev To find out the list of pools from which a user can mine something,
