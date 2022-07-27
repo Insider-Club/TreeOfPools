@@ -20,15 +20,17 @@ contract Ranking is Ownable {
     struct Rank {
         string Name;
         string[] pNames;
-        uint32[] pValues;
+        uint256[] pValues;
         bool isChangeable;
     }
 
     //List of ranks
-    Rank[] private _ranks;
+    Rank[] public _ranks;
+    mapping(string => uint256) public _rankSequence;
+    uint256 _ranksHead;
 
     //Table of ranks assigned to users
-    mapping(address => uint256) _rankTable;
+    mapping(address => uint256) public _rankTable;
 
     /// @notice Give a users the rank
     /// @dev To make it easier to change the ranks of a large number of users
@@ -75,7 +77,7 @@ contract Ranking is Ownable {
     function createRank(
         string memory Name,
         string[] memory pNames,
-        uint32[] memory pValues,
+        uint256[] memory pValues,
         bool isChangeable
     ) public onlyOwner returns (bool) {
         require(
@@ -84,7 +86,11 @@ contract Ranking is Ownable {
         );
 
         Rank memory rank = Rank(Name, pNames, pValues, isChangeable);
+
+        _rankSequence[Name] = _ranksHead;
+
         _ranks.push(rank);
+        _ranksHead++;
         return true;
     }
 
@@ -98,7 +104,7 @@ contract Ranking is Ownable {
     function changeRank(
         string memory Name,
         string[] memory pNames,
-        uint32[] memory pValues,
+        uint256[] memory pValues,
         bool isChangeable
     ) public onlyOwner returns (bool) {
         require(_ranks.length > 0, "RANK: There are no ranks.");
@@ -114,6 +120,7 @@ contract Ranking is Ownable {
         );
 
         _ranks[index] = Rank(Name, pNames, pValues, isChangeable);
+
         return true;
     }
 
@@ -266,23 +273,23 @@ contract Ranking is Ownable {
 
         _ranks[index].Name = NewName;
 
+        _rankSequence[Name] = 0;
+        _rankSequence[NewName] = index;
+
         return true;
     }
 
     /// @notice Searches for a rank by its name
     /// @dev For internal calls only
     /// @param Name - Unique rank identifier
-    /// @return uint32 (Returns the number of the title you are looking for, or discards Rank not found)
-    function searchRank(string memory Name) internal view returns (uint32) {
-        for (uint32 i = 0; i < _ranks.length; i++) {
-            if (
-                keccak256(abi.encode(_ranks[i].Name)) ==
-                keccak256(abi.encode(Name))
-            ) {
-                return i;
-            }
+    /// @return uint256 (Returns the number of the title you are looking for, or discards Rank not found)
+    function searchRank(string memory Name) internal view returns (uint256) {
+        uint256 temp = _rankSequence[Name];
+        if (temp < _ranksHead) {
+            return temp;
         }
-        revert("RANK: Rank not found!");
+
+        revert("RANK: There is no such rank!");
     }
 
     //View Functions
@@ -308,7 +315,7 @@ contract Ranking is Ownable {
         returns (
             string memory,
             string[] memory,
-            uint32[] memory,
+            uint256[] memory,
             bool
         )
     {
@@ -334,7 +341,7 @@ contract Ranking is Ownable {
         returns (
             string memory,
             string[] memory,
-            uint32[] memory,
+            uint256[] memory,
             bool
         )
     {
@@ -360,7 +367,7 @@ contract Ranking is Ownable {
         returns (
             string memory,
             string[] memory,
-            uint32[] memory,
+            uint256[] memory,
             bool
         )
     {
@@ -393,7 +400,7 @@ contract Ranking is Ownable {
     function getParRank(string memory Name)
         public
         view
-        returns (uint32[] memory)
+        returns (uint256[] memory)
     {
         return _ranks[searchRank(Name)].pValues;
     }
@@ -405,7 +412,7 @@ contract Ranking is Ownable {
     function getParRankOfUser(address user)
         public
         view
-        returns (uint32[] memory)
+        returns (uint256[] memory)
     {
         return _ranks[_rankTable[user]].pValues;
     }

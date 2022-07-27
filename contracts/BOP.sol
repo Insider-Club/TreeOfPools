@@ -57,6 +57,7 @@ contract BranchOfPools is Ownable, Initializable {
     uint256 public _CURRENT_COMMISSION;
     uint256 public _CURRENT_VALUE_TOKEN;
     uint256 public _VALUE_TOKEN;
+    uint256 public _decimals;
 
     address public _usd;
     address public _token;
@@ -105,6 +106,7 @@ contract BranchOfPools is Ownable, Initializable {
         _priceToken = price;
         _devUSDAddress = devUSDAddress;
         _devInteractionAddress = devInteractionAddress;
+        _decimals = 10**ERC20(_usd).decimals();
     }
 
     /// @notice Contract initialization function
@@ -222,7 +224,7 @@ contract BranchOfPools is Ownable, Initializable {
     function paybackEmergency() external onlyState(State.Emergency) {
         uint256 usdT = _usdEmergency[tx.origin];
 
-        _usdEmergency[tx.origin] = 0;
+        _usdEmergency[tx.origin];
 
         if (usdT == 0) {
             revert("You have no funds to withdraw!");
@@ -249,32 +251,21 @@ contract BranchOfPools is Ownable, Initializable {
     /// the amount must be approved for THIS address
     /// @param amount - The number of funds the user wants to deposit
     function deposit(uint256 amount) external onlyState(State.Fundrasing) {
-        uint256 commission = 0;
-        if (
-            Ranking(RootOfPools_v013(_root).getRanks()).getParRankOfUser(
-                tx.origin
-            )[2] != 0
-        ) {
-            commission =
-                (amount *
-                    Ranking(RootOfPools_v013(_root).getRanks())
-                        .getParRankOfUser(tx.origin)[2]) /
-                100; //[Min, Max, Commission]
+        uint256 commission;
+        uint256[] memory rank = Ranking(RootOfPools_v013(_root).getRanks())
+            .getParRankOfUser(tx.origin);
+        if (rank[2] != 0) {
+            commission = (amount * rank[2]) / 100; //[Min, Max, Commission]
         }
-        uint256 Min = (10**ERC20(_usd).decimals()) *
-            Ranking(RootOfPools_v013(_root).getRanks()).getParRankOfUser(
-                tx.origin
-            )[0];
-        uint256 Max = (10**ERC20(_usd).decimals()) *
-            Ranking(RootOfPools_v013(_root).getRanks()).getParRankOfUser(
-                tx.origin
-            )[1];
+        uint256 Min = _decimals * rank[0];
+        uint256 Max = _decimals * rank[1];
 
         require(amount >= Min, "DEPOIST: Too little funding!");
         require(
             amount + _valueUSDList[tx.origin] <= Max,
             "DEPOIST: Too many funds!"
         );
+
         require((amount) % _stepValue == 0, "DEPOSIT: Must match the step!");
         require(
             _CURRENT_VALUE + amount - commission <= _VALUE,
@@ -282,6 +273,8 @@ contract BranchOfPools is Ownable, Initializable {
         );
 
         emit Deposit(tx.origin, amount);
+
+        uint256 pre_balance = ERC20(_usd).balanceOf(address(this));
 
         require(
             ERC20(_usd).allowance(tx.origin, address(this)) >= amount,
@@ -302,9 +295,8 @@ contract BranchOfPools is Ownable, Initializable {
         _listParticipants.push(tx.origin);
 
         require(
-            ERC20(_usd).balanceOf(address(this)) ==
-                _CURRENT_VALUE + _CURRENT_COMMISSION,
-            "DEPOSIT: USD_Contract_Balance != PoolAmount"
+            pre_balance + amount == ERC20(_usd).balanceOf(address(this)),
+            "DEPOSIT: Something went wrong"
         );
 
         if (_CURRENT_VALUE == _VALUE) {
@@ -322,7 +314,7 @@ contract BranchOfPools is Ownable, Initializable {
         );
 
         _FUNDS_RAISED = _CURRENT_VALUE;
-        _CURRENT_VALUE = 0;
+        _CURRENT_VALUE;
 
         //Send to devs
         require(
@@ -346,7 +338,7 @@ contract BranchOfPools is Ownable, Initializable {
         _state = State.WaitingToken;
         _FUNDS_RAISED = _CURRENT_VALUE;
         _VALUE = _FUNDS_RAISED;
-        _CURRENT_VALUE = 0;
+        _CURRENT_VALUE;
 
         emit FundraisingClosed();
 
@@ -438,7 +430,7 @@ contract BranchOfPools is Ownable, Initializable {
             "IMPORT: The number of input data does not match!"
         );
 
-        for (uint256 i = 0; i < usersData.length; i++) {
+        for (uint256 i; i < usersData.length; i++) {
             _valueUSDList[usersData[i]] = usersAmount[i];
         }
 
@@ -511,13 +503,16 @@ contract BranchOfPools is Ownable, Initializable {
             "CLAIM: Additional tokens not yet unlocked"
         );
 
-        uint256 amount = 0;
+        uint256 amount;
         for (uint256 i = _openUnlocks[tx.origin]; i < currentUnlocks; i++) {
-            amount += (_unlocks[i] * _valueUSDList[tx.origin]) / _FUNDS_RAISED;
+            amount += _unlocks[i];
         }
+        amount = (amount * _valueUSDList[tx.origin]) / _FUNDS_RAISED;
 
         _openUnlocks[tx.origin] = currentUnlocks;
         _CURRENT_VALUE_TOKEN -= amount;
+
+        uint256 pre_balance = ERC20(_token).balanceOf(address(this));
 
         emit Claim(tx.origin);
 
@@ -527,7 +522,7 @@ contract BranchOfPools is Ownable, Initializable {
         );
 
         require(
-            ERC20(_token).balanceOf(address(this)) == _CURRENT_VALUE_TOKEN,
+            ERC20(_token).balanceOf(address(this)) == pre_balance - amount,
             "CLAIM: Something went wrong!"
         );
     }
@@ -551,10 +546,15 @@ contract BranchOfPools is Ownable, Initializable {
     /// @notice Returns the number of tokens the user can take at the moment
     /// @param user - address user
     function myCurrentAllocation(address user) public view returns (uint256) {
-        uint256 amount = 0;
-        for (uint256 i = _openUnlocks[user]; i < _unlocks.length; i++) {
-            amount += (_unlocks[i] * _valueUSDList[user]) / _FUNDS_RAISED;
+        if (_FUNDS_RAISED == 0) {
+            return 0;
         }
+
+        uint256 amount;
+        for (uint256 i = _openUnlocks[user]; i < _unlocks.length; i++) {
+            amount += _unlocks[i];
+        }
+        amount = (amount * _valueUSDList[user]) / _FUNDS_RAISED;
 
         return amount;
     }
@@ -566,7 +566,7 @@ contract BranchOfPools is Ownable, Initializable {
 
     /// @notice Auxiliary function for RootOfPools claimAll
     /// @param user - address user
-    function isClaimable(address user) public view returns (bool) {
+    function isClaimable(address user) external view returns (bool) {
         return myCurrentAllocation(user) > 0;
     }
 }

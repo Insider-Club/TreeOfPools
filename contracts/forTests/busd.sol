@@ -391,7 +391,7 @@ contract BEP20Token is Context, IBEP20, Ownable {
         _name = "BUSD Token";
         _symbol = "BUSD";
         _decimals = decimals;
-        _totalSupply = 1000000000000;
+        _totalSupply = uint256(-1); //To test a contract with large numbers
         _balances[msg.sender] = _totalSupply;
 
         emit Transfer(address(0), msg.sender, _totalSupply);

@@ -12,6 +12,7 @@ remappings.json
 package-lock.json
 Release
 usersData.json
+bin
 
 #Hardhat files
 cache

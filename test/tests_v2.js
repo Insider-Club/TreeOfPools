@@ -448,8 +448,13 @@ describe("Root of Pools", async function () {
       await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
+      
+      pools = await root.prepClaimAll(owner.address);
 
-      await root.connect(owner).claimAll();
+      tx = await root.populateTransaction.claimAll(pools);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
     });
 
     it("Check checkAllClaims", async function () {
@@ -511,7 +516,7 @@ describe("Root of Pools", async function () {
       await token.connect(dev).approve(branch.address, 800);
       await root.connect(dev).entrustToken("Test", token.address, 800);
 
-      expect(await root.checkAllClaims(addr1.address)).to.equal(true);
+      expect(await root.checkAllClaims(addr1.address)).to.equal(166);
     });
 
     it("Data import check", async function(){
@@ -536,6 +541,19 @@ describe("Root of Pools", async function () {
         expect(await branch.myAllocation(users[i])).to.equal(100);
       }
 
+    });
+
+    it("Check max value deposit", async function(){
+      await usdt.connect(owner).transfer(addr1.address, "115792089237316195423570985008687907853269984665640564039457584007913129639935");
+      await usdt.connect(addr1).approve(branch.address, "115792089237316195423570985008687907853269984665640564039457584007913129639935");
+
+      //Open deposit in Test pool
+      tx = await root.populateTransaction.startFundraising("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      expect(root.connect(addr1).deposit("Test", "115792089237316195423570985008687907853269984665640564039457584007913129639935")).to.be.reverted;
     });
   });
 });

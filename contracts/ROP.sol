@@ -23,7 +23,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         string name;
     }
 
-    Pool[] Pools;
+    Pool[] public Pools;
 
     mapping(string => address) private _poolsTable;
 
@@ -31,6 +31,14 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     address public _rankingAddress;
 
     event PoolCreated(string name, address pool);
+
+    modifier shouldExist(string calldata name) {
+        require(
+            _poolsTable[name] != address(0),
+            "ROOT: Selected pool does not exist!"
+        );
+        _;
+    }
 
     /// @notice Replacement of the constructor to implement the proxy
     function initialize(address usdAddress, address rankingAddress)
@@ -85,11 +93,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         uint256 collectedCommission,
         address[] calldata usersData,
         uint256[] calldata usersAmount
-    ) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
+    ) external onlyOwner shouldExist(name) {
         require(
             BranchOfPools(_poolsTable[name]).importTable(
                 usersData,
@@ -115,12 +119,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         string calldata name,
         address[] calldata usersData,
         uint256[] calldata usersAmount
-    ) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    ) external onlyOwner shouldExist(name) {
         require(
             BranchOfPools(_poolsTable[name]).importTable(
                 usersData,
@@ -133,11 +132,8 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     function importFR(string calldata name, uint256 fundsRaised)
         external
         onlyOwner
+        shouldExist(name)
     {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
         require(
             BranchOfPools(_poolsTable[name]).importFR(fundsRaised),
             "IMPORT: Failed to write the fundsRaised variable"
@@ -147,22 +143,19 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     function importCC(string calldata name, uint256 collectedCommission)
         external
         onlyOwner
+        shouldExist(name)
     {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
         require(
             BranchOfPools(_poolsTable[name]).importCC(collectedCommission),
             "IMPORT: Failed to write the collectedCommission variable"
         );
     }
 
-    function closeImport(string calldata name) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
+    function closeImport(string calldata name)
+        external
+        onlyOwner
+        shouldExist(name)
+    {
         require(
             BranchOfPools(_poolsTable[name]).closeImport(),
             "IMPORT: Failed to close import and change pool state"
@@ -172,90 +165,67 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     function changeTargetValue(string calldata name, uint256 value)
         external
         onlyOwner
+        shouldExist(name)
     {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
         BranchOfPools(_poolsTable[name]).changeTargetValue(value);
     }
 
     function changeStepValue(string calldata name, uint256 step)
         external
         onlyOwner
+        shouldExist(name)
     {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
         BranchOfPools(_poolsTable[name]).changeStepValue(step);
     }
 
     function changeDevAddress(string calldata name, address developers)
         external
         onlyOwner
+        shouldExist(name)
     {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
         BranchOfPools(_poolsTable[name]).changeDevAddress(developers);
     }
 
-    function startFundraising(string calldata name) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function startFundraising(string calldata name)
+        external
+        onlyOwner
+        shouldExist(name)
+    {
         BranchOfPools(_poolsTable[name]).startFundraising();
     }
 
-    function collectFunds(string calldata name) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function collectFunds(string calldata name)
+        external
+        onlyOwner
+        shouldExist(name)
+    {
         BranchOfPools(_poolsTable[name]).collectFunds();
     }
 
-    function stopFundraising(string calldata name) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function stopFundraising(string calldata name)
+        external
+        onlyOwner
+        shouldExist(name)
+    {
         BranchOfPools(_poolsTable[name]).stopFundraising();
     }
 
-    function stopEmergency(string calldata name) external onlyOwner {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function stopEmergency(string calldata name)
+        external
+        onlyOwner
+        shouldExist(name)
+    {
         BranchOfPools(_poolsTable[name]).stopEmergency();
     }
 
-    function paybackEmergency(string calldata name) external {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function paybackEmergency(string calldata name) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).paybackEmergency();
     }
 
-    function deposit(string calldata name, uint256 amount) external {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function deposit(string calldata name, uint256 amount)
+        external
+        shouldExist(name)
+    {
         BranchOfPools(_poolsTable[name]).deposit(amount);
     }
 
@@ -263,21 +233,11 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         string calldata name,
         address token,
         uint256 amount
-    ) external {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    ) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).entrustToken(token, amount);
     }
 
-    function claimName(string calldata name) external {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
+    function claimName(string calldata name) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).claim();
     }
 
@@ -287,25 +247,34 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         BranchOfPools(pool).claim();
     }
 
-    function claimAll() external {
-        for (uint256 i = 0; i < Pools.length; i++) {
-            if (BranchOfPools(Pools[i].pool).isClaimable(tx.origin)) {
-                claimAddress(Pools[i].pool);
+    function prepClaimAll(address user)
+        external
+        view
+        returns (address[] memory)
+    {
+        address[] memory out;
+        for (uint256 i; i < Pools.length; i++) {
+            if (BranchOfPools(Pools[i].pool).isClaimable(user)) {
+                out[i] = Pools[i].pool;
             }
         }
     }
 
-    function checkAllClaims(address user) external view returns (bool) {
-        uint256 temp = 0;
-        for (uint256 i = 0; i < Pools.length; i++) {
+    ///@dev To find out the list of pools from which a user can mine something,
+    ///     use the prepClaimAll function
+    function claimAll(address[] calldata pools) external {
+        for (uint256 i; i < pools.length; i++) {
+            claimAddress(pools[i]);
+        }
+    }
+
+    function checkAllClaims(address user) external view returns (uint256) {
+        uint256 temp;
+        for (uint256 i; i < Pools.length; i++) {
             temp += (BranchOfPools(Pools[i].pool).myCurrentAllocation(user));
         }
 
-        if (temp > 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return temp;
     }
 
     function getAllocations(address user, uint256 step)
@@ -315,7 +284,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     {
         uint256[10] memory amounts;
         for (
-            uint256 i = 0;
+            uint256 i;
             (i + 10 * step < (step + 1) * 10) && (i + 10 * step < Pools.length);
             i++
         ) {
@@ -327,13 +296,9 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     function getState(string calldata name)
         external
         view
+        shouldExist(name)
         returns (BranchOfPools.State)
     {
-        require(
-            _poolsTable[name] != address(0),
-            "ROOT: Selected pool does not exist!"
-        );
-
         return BranchOfPools(_poolsTable[name]).getState();
     }
 
