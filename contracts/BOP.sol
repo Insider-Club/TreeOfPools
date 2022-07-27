@@ -224,7 +224,7 @@ contract BranchOfPools is Ownable, Initializable {
     function paybackEmergency() external onlyState(State.Emergency) {
         uint256 usdT = _usdEmergency[tx.origin];
 
-        _usdEmergency[tx.origin];
+        _usdEmergency[tx.origin] = 0;
 
         if (usdT == 0) {
             revert("You have no funds to withdraw!");
@@ -234,9 +234,9 @@ contract BranchOfPools is Ownable, Initializable {
 
         emit FundsReturned(tx.origin, usdT);
 
-        if (usdT != 0) {
-            ERC20(_usd).transfer(tx.origin, usdT);
-        }
+        
+        ERC20(_usd).transfer(tx.origin, usdT);
+        
 
         uint256 afterBalance = ERC20(_usd).balanceOf(tx.origin);
 
@@ -314,7 +314,7 @@ contract BranchOfPools is Ownable, Initializable {
         );
 
         _FUNDS_RAISED = _CURRENT_VALUE;
-        _CURRENT_VALUE;
+        _CURRENT_VALUE = 0;
 
         //Send to devs
         require(
@@ -338,7 +338,7 @@ contract BranchOfPools is Ownable, Initializable {
         _state = State.WaitingToken;
         _FUNDS_RAISED = _CURRENT_VALUE;
         _VALUE = _FUNDS_RAISED;
-        _CURRENT_VALUE;
+        _CURRENT_VALUE = 0;
 
         emit FundraisingClosed();
 
@@ -384,7 +384,7 @@ contract BranchOfPools is Ownable, Initializable {
         }
 
         require(
-            ERC20(tokenAddr).balanceOf(address(tx.origin)) >= amount,
+            ERC20(tokenAddr).balanceOf(tx.origin) >= amount,
             "ENTRUST: You don't have enough tokens!"
         );
 
