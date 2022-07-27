@@ -555,5 +555,109 @@ describe("Root of Pools", async function () {
 
       expect(root.connect(addr1).deposit("Test", "115792089237316195423570985008687907853269984665640564039457584007913129639935")).to.be.reverted;
     });
+
+    it("Check +1 token bag", async function(){
+      await usdt.connect(owner).transfer(addr1.address, 1000000000); //1000 usdt
+      await usdt.connect(owner).transfer(addr2.address, 1000000000);
+
+      //Open deposit in Test pool
+      tx = await root.populateTransaction.startFundraising("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      //Deposit in Test pool
+      await usdt.connect(addr1).approve(branch.address, 1000000000);
+      await usdt.connect(addr2).approve(branch.address, 1000000000);
+
+      await usdt.connect(owner).transfer(branch.address, 1);
+
+      await root.connect(addr1).deposit("Test", 500000000); //500 usdt
+      await root.connect(addr2).deposit("Test", 500000000);
+
+      //Close fundraising Test pool
+      tx = await root.populateTransaction.stopFundraising("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
+        "800000000"
+      ); // 800 usdt
+      expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
+        "200000001"
+      ); // 200 usdt
+
+      //Create new token for entrust
+      Token = await ethers.getContractFactory("SimpleToken");
+      token = await Token.deploy("TEST", "TEST", 1000000);
+
+      await token.connect(owner).transfer(dev.address, 1000000);
+      await token.connect(dev).approve(branch.address, 90000);
+
+      await token.connect(dev).transfer(branch.address, 1);
+
+      await root.connect(dev).entrustToken("Test", token.address, 90000);
+
+      expect((await token.balanceOf(branch.address)).toString()).to.equal(
+        "56251"
+      );
+      expect((await token.balanceOf(msig.address)).toString()).to.equal(
+        "33750"
+      );
+
+      //Claim tokens
+      await root.connect(addr1).claimName("Test");
+      await root.connect(addr2).claimName("Test");
+
+      expect(
+        (
+          await branch.connect(addr1).myCurrentAllocation(addr1.address)
+        ).toString()
+      ).to.equal("0");
+      expect(
+        (
+          await branch.connect(addr2).myCurrentAllocation(addr2.address)
+        ).toString()
+      ).to.equal("0");
+      expect((await token.balanceOf(addr1.address)).toString()).to.equal(
+        "28125"
+      );
+      expect((await token.balanceOf(addr2.address)).toString()).to.equal(
+        "28125"
+      );
+
+      //Next unlocks
+      await token.connect(dev).approve(branch.address, 90000);
+      await root.connect(dev).entrustToken("Test", token.address, 90000);
+
+      expect((await token.balanceOf(branch.address)).toString()).to.equal(
+        "56251"
+      );
+      expect((await token.balanceOf(msig.address)).toString()).to.equal(
+        "67500"
+      );
+
+      //Claim tokens
+      await root.connect(addr1).claimName("Test");
+      await root.connect(addr2).claimName("Test");
+
+      expect(
+        (
+          await branch.connect(addr1).myCurrentAllocation(addr1.address)
+        ).toString()
+      ).to.equal("0");
+      expect(
+        (
+          await branch.connect(addr2).myCurrentAllocation(addr2.address)
+        ).toString()
+      ).to.equal("0");
+      expect((await token.balanceOf(addr1.address)).toString()).to.equal(
+        "56250"
+      );
+      expect((await token.balanceOf(addr2.address)).toString()).to.equal(
+        "56250"
+      );
+    });
   });
 });
