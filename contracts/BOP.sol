@@ -112,7 +112,7 @@ contract BranchOfPools is Ownable, Initializable {
     /// @notice Contract initialization function
     /// @dev Changes all numeric values from the constructor according to the decimals of the selected usd token
     function init() external onlyOwner initializer returns (uint256) {
-        uint256 temp = 10**ERC20(_usd).decimals();
+        uint256 temp = _decimals;
         _VALUE = _VALUE * temp;
         _stepValue = _stepValue * temp;
         return temp;
@@ -224,7 +224,7 @@ contract BranchOfPools is Ownable, Initializable {
     function paybackEmergency() external onlyState(State.Emergency) {
         uint256 usdT = _usdEmergency[tx.origin];
 
-        _usdEmergency[tx.origin];
+        _usdEmergency[tx.origin] = 0;
 
         if (usdT == 0) {
             revert("You have no funds to withdraw!");
@@ -234,9 +234,9 @@ contract BranchOfPools is Ownable, Initializable {
 
         emit FundsReturned(tx.origin, usdT);
 
-        if (usdT != 0) {
-            ERC20(_usd).transfer(tx.origin, usdT);
-        }
+        
+        ERC20(_usd).transfer(tx.origin, usdT);
+        
 
         uint256 afterBalance = ERC20(_usd).balanceOf(tx.origin);
 
@@ -260,10 +260,10 @@ contract BranchOfPools is Ownable, Initializable {
         uint256 Min = _decimals * rank[0];
         uint256 Max = _decimals * rank[1];
 
-        require(amount >= Min, "DEPOIST: Too little funding!");
+        require(amount >= Min, "DEPOSIT: Too little funding!");
         require(
             amount + _valueUSDList[tx.origin] <= Max,
-            "DEPOIST: Too many funds!"
+            "DEPOSIT: Too many funds!"
         );
 
         require((amount) % _stepValue == 0, "DEPOSIT: Must match the step!");
@@ -275,11 +275,6 @@ contract BranchOfPools is Ownable, Initializable {
         emit Deposit(tx.origin, amount);
 
         uint256 pre_balance = ERC20(_usd).balanceOf(address(this));
-
-        require(
-            ERC20(_usd).allowance(tx.origin, address(this)) >= amount,
-            "DEPOSIT: ALLOW ERROR"
-        );
 
         require(
             ERC20(_usd).transferFrom(tx.origin, address(this), amount),
@@ -314,7 +309,7 @@ contract BranchOfPools is Ownable, Initializable {
         );
 
         _FUNDS_RAISED = _CURRENT_VALUE;
-        _CURRENT_VALUE;
+        _CURRENT_VALUE = 0;
 
         //Send to devs
         require(
@@ -336,9 +331,10 @@ contract BranchOfPools is Ownable, Initializable {
     /// Allows you to close the fundraiser before the fundraising amount is reached
     function stopFundraising() external onlyOwner onlyState(State.Fundrasing) {
         _state = State.WaitingToken;
-        _FUNDS_RAISED = _CURRENT_VALUE;
-        _VALUE = _FUNDS_RAISED;
-        _CURRENT_VALUE;
+        uint temp = _CURRENT_VALUE;
+        _FUNDS_RAISED = temp;
+        _VALUE = temp;
+        _CURRENT_VALUE = 0;
 
         emit FundraisingClosed();
 
@@ -384,7 +380,7 @@ contract BranchOfPools is Ownable, Initializable {
         }
 
         require(
-            ERC20(tokenAddr).balanceOf(address(tx.origin)) >= amount,
+            ERC20(tokenAddr).balanceOf(tx.origin) >= amount,
             "ENTRUST: You don't have enough tokens!"
         );
 
