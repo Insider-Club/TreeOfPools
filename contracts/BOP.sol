@@ -61,8 +61,8 @@ contract BranchOfPools is Ownable, Initializable {
 
     address public _usd;
     address public _token;
-    address private _devUSDAddress;
-    address private _devInteractionAddress;
+    address public _devUSDAddress;
+    address public _devInteractionAddress;
 
     mapping(address => uint256) private _valueUSDList;
 

@@ -157,7 +157,7 @@ contract Ranking is Ownable {
     /// @param Name - Unique rank identifier
     /// @param pValues[] - An array of parameter values
     /// @return bool (On successful execution returns true)
-    function changeRankParValues(string memory Name, uint32[] memory pValues)
+    function changeRankParValues(string memory Name, uint256[] memory pValues)
         public
         onlyOwner
         returns (bool)
