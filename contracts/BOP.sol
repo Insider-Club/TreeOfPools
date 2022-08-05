@@ -541,6 +541,16 @@ contract BranchOfPools is Ownable, Initializable {
         return _valueUSDList[user];
     }
 
+    /// @notice Returns the amount of money that the user has deposited excluding the commission
+    /// @param user - address user
+    function myAllocationEmergency(address user)
+        external
+        view
+        returns (uint256)
+    {
+        return _usdEmergency[user];
+    }
+
     /// @notice Returns the number of tokens the user can take at the moment
     /// @param user - address user
     function myCurrentAllocation(address user) public view returns (uint256) {
