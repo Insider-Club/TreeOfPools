@@ -178,14 +178,6 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         BranchOfPools(_poolsTable[name]).changeStepValue(step);
     }
 
-    function changeDevAddress(string calldata name, address developers)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).changeDevAddress(developers);
-    }
-
     function startFundraising(string calldata name)
         external
         onlyOwner
