@@ -11,8 +11,6 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 import "../contracts/ROP.sol";
 
-//TODO Разрабы вернули деньги!
-
 /// @title The pool's subsidiary contract for fundraising.
 /// This contract collects funds, distributes them, and charges fees
 /// @author Nethny
@@ -195,7 +193,7 @@ contract BranchOfPools is Ownable, Initializable {
         if (_state == State.WaitingToken) {
             uint256 balance = ERC20(_usd).balanceOf(address(this));
             require(
-                balance == _FUNDS_RAISED + _CURRENT_COMMISSION,
+                balance >= _FUNDS_RAISED + _CURRENT_COMMISSION,
                 "It takes money to get a refund"
             );
         }
@@ -354,8 +352,6 @@ contract BranchOfPools is Ownable, Initializable {
             "COLLECT: Transfer error"
         );
     }
-
-    //TODO Проверить наличие неочевидных багов
 
     /// @notice Allows developers to transfer tokens for distribution to contributors
     /// @dev This function is only called from the developers address _devInteractionAddress

@@ -826,5 +826,70 @@ describe("Root of Pools", async function () {
         "19800"
       );
     });
+
+    it("Check for a refund from the developer", async function(){
+      await usdt.connect(owner).transfer(addr1.address, 1000000000); //1000 usdt
+      await usdt.connect(owner).transfer(addr2.address, 1000000000);
+
+      //Open deposit in Test pool
+      tx = await root.populateTransaction.startFundraising("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      //Deposit in Test pool
+      await usdt.connect(addr1).approve(branch.address, 1000000000);
+      await usdt.connect(addr2).approve(branch.address, 1000000000);
+
+      await usdt.connect(owner).transfer(branch.address, 1);
+
+      await root.connect(addr1).deposit("Test", 500000000); //500 usdt
+      await root.connect(addr2).deposit("Test", 500000000);
+
+      //Close fundraising Test pool
+      tx = await root.populateTransaction.stopFundraising("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
+        "800000000"
+      ); // 800 usdt
+      expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
+        "144000001"
+      );
+      expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
+        "33600000"
+      );
+
+      //Refund from dev
+      await usdt.connect(devUSDT).transfer(branch.address, 800000000);
+      
+      //Refund from admin
+      tx = await usdt.populateTransaction.transfer(branch.address, 144000001);
+      await msig.connect(owner).submitTransaction(usdt.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      //Try stop
+      tx = await root.populateTransaction.stopEmergency("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      expect(await branch.getState()).to.equal(2);
+      
+      //Refund from fund
+      await usdt.connect(fund).transfer(branch.address, 33600000);
+
+      //Try stop
+      tx = await root.populateTransaction.stopEmergency("Test");
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      expect(await branch.getState()).to.equal(4);
+
+    });
   });
 });
