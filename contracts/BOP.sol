@@ -378,7 +378,7 @@ contract BranchOfPools is Ownable, Initializable {
         } else {
             require(
                 tokenAddr == _token,
-                "ENTRUST: You should not distribute multiple tokens with a single contract"
+                "ENTRUST: The tokens have only one contract"
             );
         }
 
@@ -422,7 +422,7 @@ contract BranchOfPools is Ownable, Initializable {
     ) external onlyState(State.Pause) onlyOwner returns (bool) {
         require(
             usersData.length == usersAmount.length,
-            "IMPORT: The number of input data does not match!"
+            "IMPORT: The number not match!"
         );
 
         for (uint256 i; i < usersData.length; i++) {
@@ -528,28 +528,13 @@ contract BranchOfPools is Ownable, Initializable {
         onlyNotState(State.Pause)
         onlyNotState(State.Fundrasing)
     {
-        require(
-            user != address(0),
-            "SHARE: You do not have to transfer ownership of your share at ground zero"
-        );
+        require(user != address(0), "SHARE: Zero address");
 
-        require(
-            _valueUSDList[tx.origin] != 0,
-            "SHARE: You have nothing to pass on"
-        );
-        require(
-            _usdEmergency[tx.origin] != 0,
-            "SHARE: How did you pay the commission but not deposit the money"
-        );
+        require(_valueUSDList[tx.origin] != 0, "SHARE: Your volume 0");
+        require(_usdEmergency[tx.origin] != 0);
 
-        require(
-            _valueUSDList[user] == 0,
-            "SHARE: You cannot transfer your share to another member"
-        );
-        require(
-            _usdEmergency[user] == 0,
-            "SHARE: You cannot transfer your share to another member"
-        );
+        require(_valueUSDList[user] == 0, "SHARE: Not another member");
+        require(_usdEmergency[user] == 0);
 
         _valueUSDList[user] = _valueUSDList[tx.origin];
         _usdEmergency[user] = _usdEmergency[tx.origin];
@@ -560,8 +545,8 @@ contract BranchOfPools is Ownable, Initializable {
 
     //TODO Add comments
     function getCommission() external {
-        require(_fundLock, "GET: You cannot take this share at this time");
-        require(msg.sender == _fundAddress, "GET: You are not a foundation");
+        require(_fundLock, "GET: Not now");
+        require(msg.sender == _fundAddress, "GET: Not you");
 
         uint256 temp = _fundValue;
         _fundValue = 0;
