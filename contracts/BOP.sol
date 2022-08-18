@@ -69,12 +69,12 @@ contract BranchOfPools is Ownable, Initializable {
     uint256 public _fundCommission;
 
     mapping(address => uint256) private _valueUSDList;
-
     mapping(address => uint256) private _usdEmergency;
-    address[] public _listParticipants;
-
     mapping(address => uint256) private _openUnlocks;
+
     uint256[] private _unlocks;
+
+    address[] public _listParticipants;
 
     /// @notice Assigns the necessary values to the variables
     /// @dev Just a constructor. But this contract must be initialized.
