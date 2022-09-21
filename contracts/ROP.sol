@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
+import "../contracts/Proxy.sol";
 import "../contracts/Ranking.sol";
 import "../contracts/BOP.sol";
 
@@ -23,14 +24,18 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         string name;
     }
 
-    Pool[] public Pools;
-
     mapping(string => address) private _poolsTable;
+    mapping(address => bool) private _imageTable;
 
     address public _usdAddress;
     address public _rankingAddress;
 
+    Pool[] public Pools;
+
+    address[] public Images;
+
     event PoolCreated(string name, address pool);
+    event ImageAdded(address image);
 
     modifier shouldExist(string calldata name) {
         require(
@@ -64,169 +69,70 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         return _usdAddress;
     }
 
+    function addImage(address image) external onlyOwner {
+        require(_imageTable[image] != true);
+
+        Images.push(image);
+        _imageTable[image] = true;
+
+        emit ImageAdded(image);
+    }
+
     /// @notice Returns the linked branch contracts
     function getPools() external view returns (Pool[] memory) {
         return Pools;
     }
 
     /// @notice Allows you to attach a new pool (branch contract)
-    function createPool(string calldata name, address pool) external onlyOwner {
-        require(isContract(pool), "ROOT: Pool must be a contract!");
+    /// @dev Don't forget to run the init function
+    function createPool(
+        string calldata name,
+        uint256 imageNumber,
+        bytes calldata data
+    ) external onlyOwner {
+        require(
+            imageNumber <= Images.length,
+            "ROOT: Such an image does not exist"
+        );
         require(
             _poolsTable[name] == address(0),
             "ROOT: Pool with this name already exists!"
         );
 
-        _poolsTable[name] = pool;
+        TransparentProxy pool = new TransparentProxy(Images[imageNumber], data);
 
-        Pool memory poolT = Pool(pool, name);
+        address addrPool = address(pool);
+
+        _poolsTable[name] = addrPool;
+
+        Pool memory poolT = Pool(addrPool, name);
         Pools.push(poolT);
 
-        emit PoolCreated(name, pool);
+        emit PoolCreated(name, addrPool);
     }
 
-    /// @notice The following functions provide access to the functionality of linked branch contracts
+    event Response(address to, bool success, bytes data);
 
-    function dataImport(
-        string calldata name,
-        uint256 fundsRaised,
-        uint256 collectedCommission,
-        address[] calldata usersData,
-        uint256[] calldata usersAmount
-    ) external onlyOwner shouldExist(name) {
-        require(
-            BranchOfPools(_poolsTable[name]).importTable(
-                usersData,
-                usersAmount
-            ),
-            "IMPORT: Failed to import a table of participants' shares"
+    /*
+    // Let's imagine that contract B does not have the source code for
+    // contract A, but we do know the address of A and the function to call.
+    function testCallFoo(address payable _addr) public payable {
+        // You can send ether and specify a custom gas amount
+        (bool success, bytes memory data) = _addr.call{value: msg.value, gas: 5000}(
+            abi.encodeWithSignature("foo(string,uint256)", "call foo", 123)
         );
-        require(
-            BranchOfPools(_poolsTable[name]).importFR(fundsRaised),
-            "IMPORT: Failed to write the fundsRaised variable"
-        );
-        require(
-            BranchOfPools(_poolsTable[name]).importCC(collectedCommission),
-            "IMPORT: Failed to write the collectedCommission variable"
-        );
-        require(
-            BranchOfPools(_poolsTable[name]).closeImport(),
-            "IMPORT: Failed to close import and change pool state"
-        );
-    }
 
-    function importTable(
-        string calldata name,
-        address[] calldata usersData,
-        uint256[] calldata usersAmount
-    ) external onlyOwner shouldExist(name) {
-        require(
-            BranchOfPools(_poolsTable[name]).importTable(
-                usersData,
-                usersAmount
-            ),
-            "IMPORT: Failed to import a table of participants' shares"
-        );
-    }
+        emit Response(success, data);*/
 
-    function importFR(string calldata name, uint256 fundsRaised)
+    function Calling(string calldata name, bytes calldata dataIn)
         external
         onlyOwner
         shouldExist(name)
     {
-        require(
-            BranchOfPools(_poolsTable[name]).importFR(fundsRaised),
-            "IMPORT: Failed to write the fundsRaised variable"
-        );
-    }
+        address dst = _poolsTable[name];
+        (bool success, bytes memory data) = dst.call(dataIn);
 
-    function importCC(string calldata name, uint256 collectedCommission)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        require(
-            BranchOfPools(_poolsTable[name]).importCC(collectedCommission),
-            "IMPORT: Failed to write the collectedCommission variable"
-        );
-    }
-
-    function closeImport(string calldata name)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        require(
-            BranchOfPools(_poolsTable[name]).closeImport(),
-            "IMPORT: Failed to close import and change pool state"
-        );
-    }
-
-    function changeTargetValue(string calldata name, uint256 value)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).changeTargetValue(value);
-    }
-
-    function changeStepValue(string calldata name, uint256 step)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).changeStepValue(step);
-    }
-
-    function startFundraising(string calldata name)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).startFundraising();
-    }
-
-    function collectFunds(string calldata name)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).collectFunds();
-    }
-
-    function stopFundraising(string calldata name)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).stopFundraising();
-    }
-
-    function stopEmergency(string calldata name)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).stopEmergency();
-    }
-
-    function paybackEmergency(string calldata name) external shouldExist(name) {
-        BranchOfPools(_poolsTable[name]).paybackEmergency();
-    }
-
-    function deposit(string calldata name, uint256 amount)
-        external
-        shouldExist(name)
-    {
-        BranchOfPools(_poolsTable[name]).deposit(amount);
-    }
-
-    function entrustToken(
-        string calldata name,
-        address token,
-        uint256 amount
-    ) external shouldExist(name) {
-        BranchOfPools(_poolsTable[name]).entrustToken(token, amount);
+        emit Response(dst, success, data);
     }
 
     function claimName(string calldata name) external shouldExist(name) {
@@ -293,19 +199,10 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         shouldExist(name)
         returns (BranchOfPools.State)
     {
-        return BranchOfPools(_poolsTable[name]).getState();
+        return BranchOfPools(_poolsTable[name])._state();
     }
 
     function getRanks() external view returns (address) {
         return _rankingAddress;
-    }
-
-    function isContract(address account) internal view returns (bool) {
-        bytes32 codehash;
-        bytes32 accountHash = 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470;
-        assembly {
-            codehash := extcodehash(account)
-        }
-        return (codehash != accountHash && codehash != 0x0);
     }
 }

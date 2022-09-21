@@ -4,7 +4,6 @@ pragma solidity ^0.8.2;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -17,7 +16,7 @@ import "../contracts/ROP.sol";
 /// @dev This contract pulls commissions and other parameters from the Ranking contract.
 /// Important: Agree on the structure of the ranking parameters and this contract!
 /// Otherwise the calculations can be wrong!
-contract BranchOfPools is Ownable, Initializable {
+contract BranchOfPools is Initializable {
     using Address for address;
     using Strings for uint256;
 
@@ -39,14 +38,7 @@ contract BranchOfPools is Ownable, Initializable {
     event EmergencyStoped();
     event FundsReturned(address user, uint256 amount);
 
-    event PriceChanged(uint256 oldPrice, uint256 newPrice);
-    event TargetValueChanged(uint256 oldValue, uint256 newValue);
-    event StepChanged(uint256 oldStep, uint256 newStep);
-    event DevInteractionAddressChanged(address oldAddress, address newAddress);
-
-    event RaisedFundsImported(uint256 oldFR, uint256 newFR);
-    event CurrentCommissionImported(uint256 oldCC, uint256 newCC);
-
+    address public _owner;
     address private _root;
     uint256 public _priceToken;
 
@@ -57,34 +49,50 @@ contract BranchOfPools is Ownable, Initializable {
     uint256 public _CURRENT_COMMISSION;
     uint256 public _CURRENT_VALUE_TOKEN;
     uint256 public _VALUE_TOKEN;
-    uint256 public _decimals;
+    uint256 public _VIP_VALUE;
+    uint256 private _decimals;
 
     address public _usd;
     address public _token;
     address public _devUSDAddress;
 
     address public _fundAddress;
-    bool public _fundLock = false;
-    uint256 public _fundValue;
+    bool private _fundLock = false;
+    uint256 private _fundValue;
     uint256 public _fundCommission;
 
+    mapping(address => uint256) private _vipList;
     mapping(address => uint256) private _valueUSDList;
     mapping(address => uint256) private _usdEmergency;
     mapping(address => uint256) private _openUnlocks;
 
-    uint256[] private _unlocks;
+    uint256[] public _unlocks;
+    uint256[] public _vipUnlocks;
 
     address[] public _listParticipants;
 
+    modifier onlyOwner() {
+        require(msg.sender == _owner, "Ownable: Only owner");
+        _;
+    }
+
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(
+            newOwner != address(0),
+            "Ownable: new owner is the zero address"
+        );
+        _owner = newOwner;
+    }
+
     /// @notice Assigns the necessary values to the variables
-    /// @dev Just a constructor. But this contract must be initialized.
+    /// @dev Just a constructor
     /// You need to call init()
     /// @param Root - RootOfPools contract address
     /// @param VALUE - The target amount of funds we collect
     /// @param Step - The step with which we raise funds
     /// @param price - Price of 1 token in usd
     /// @param devUSDAddress - The address of the developers to which they will receive the collected funds
-    constructor(
+    function init(
         address Root,
         uint256 VALUE,
         uint256 Step,
@@ -92,31 +100,23 @@ contract BranchOfPools is Ownable, Initializable {
         address devUSDAddress,
         address fundAddress,
         uint256 fundCommission
-    ) {
+    ) external initializer returns (uint256) {
         require(Root != address(0), "The root address must not be zero.");
         require(
             devUSDAddress != address(0),
             "The devUSDAddress must not be zero."
         );
 
+        _owner = msg.sender;
         _root = Root;
         _usd = RootOfPools_v013(_root).getUSDAddress();
-        _VALUE = VALUE;
-        _stepValue = Step;
+        _decimals = 10**ERC20(_usd).decimals();
+        _VALUE = VALUE * _decimals;
+        _stepValue = Step * _decimals;
         _priceToken = price;
         _devUSDAddress = devUSDAddress;
         _fundAddress = fundAddress;
         _fundCommission = fundCommission;
-        _decimals = 10**ERC20(_usd).decimals();
-    }
-
-    /// @notice Contract initialization function
-    /// @dev Changes all numeric values from the constructor according to the decimals of the selected usd token
-    function init() external onlyOwner initializer returns (uint256) {
-        uint256 temp = _decimals;
-        _VALUE = _VALUE * temp;
-        _stepValue = _stepValue * temp;
-        return temp;
     }
 
     /// @notice Changes the target amount of funds we collect
@@ -129,8 +129,6 @@ contract BranchOfPools is Ownable, Initializable {
     {
         uint256 temp = _VALUE;
         _VALUE = value;
-
-        emit TargetValueChanged(temp, value);
     }
 
     /// @notice Changes the step with which we raise funds
@@ -143,22 +141,6 @@ contract BranchOfPools is Ownable, Initializable {
     {
         uint256 temp = _stepValue;
         _stepValue = step;
-
-        emit StepChanged(temp, step);
-    }
-
-    /// @notice Changes price of 1 token in usd
-    /// @param price - the new price
-    function changePrice(uint256 price)
-        external
-        onlyOwner
-        onlyNotState(State.TokenDistribution)
-        onlyNotState(State.WaitingToken)
-    {
-        uint256 temp = _priceToken;
-        _priceToken = price;
-
-        emit PriceChanged(temp, price);
     }
 
     modifier onlyState(State state) {
@@ -169,11 +151,6 @@ contract BranchOfPools is Ownable, Initializable {
     modifier onlyNotState(State state) {
         require(_state != state, "STATE: It's impossible to do it now.");
         _;
-    }
-
-    /// @notice Returns the current state of the contract
-    function getState() external view returns (State) {
-        return _state;
     }
 
     /// @notice Opens fundraising
@@ -271,13 +248,20 @@ contract BranchOfPools is Ownable, Initializable {
             "DEPOSIT: Transfer error"
         );
 
+        if (commission == 0) {
+            _vipList[tx.origin] += amount;
+            _VIP_VALUE += amount;
+        }
+
         _usdEmergency[tx.origin] += amount;
+
+        if (_valueUSDList[tx.origin] == 0) {
+            _listParticipants.push(tx.origin);
+        }
 
         _valueUSDList[tx.origin] += amount - commission;
         _CURRENT_COMMISSION += commission;
         _CURRENT_VALUE += amount - commission;
-
-        _listParticipants.push(tx.origin);
 
         require(
             pre_balance + amount == ERC20(_usd).balanceOf(address(this)),
@@ -290,47 +274,31 @@ contract BranchOfPools is Ownable, Initializable {
         }
     }
 
-    /// @notice Allows you to distribute the collected funds
-    /// @dev This function should be used only in case of automatic closing of the pool
-    function collectFunds() external onlyOwner onlyState(State.WaitingToken) {
-        require(
-            _CURRENT_VALUE == _VALUE,
-            "COLLECT: The funds have already been withdrawn."
-        );
-
-        _FUNDS_RAISED = _CURRENT_VALUE;
-        _CURRENT_VALUE = 0;
-
-        //Send to devs
-        require(
-            ERC20(_usd).transfer(_devUSDAddress, _FUNDS_RAISED),
-            "COLLECT: Transfer error"
-        );
-
-        //Send to fund
-        uint256 toFund = (_FUNDS_RAISED * _fundCommission) / 100;
-        _fundValue = (toFund * 40) / 100;
-        require(ERC20(_usd).transfer(_fundAddress, toFund - _fundValue), "");
-
-        //Send to admin
-        require(
-            ERC20(_usd).transfer(
-                RootOfPools_v013(_root).owner(),
-                ERC20(_usd).balanceOf(address(this)) - _fundValue
-            ),
-            "COLLECT: Transfer error"
-        );
-    }
-
     /// @notice Closes the fundraiser and distributes the funds raised
     /// Allows you to close the fundraiser before the fundraising amount is reached
-    function stopFundraising() external onlyOwner onlyState(State.Fundrasing) {
-        _state = State.WaitingToken;
-        _FUNDS_RAISED = _CURRENT_VALUE;
-        _VALUE = _CURRENT_VALUE;
-        _CURRENT_VALUE = 0;
+    function stopFundraising()
+        external
+        onlyOwner
+        onlyNotState(State.Pause)
+        onlyNotState(State.TokenDistribution)
+        onlyNotState(State.Emergency)
+    {
+        if (_state == State.Fundrasing) {
+            _state = State.WaitingToken;
+            _FUNDS_RAISED = _CURRENT_VALUE;
+            _VALUE = _CURRENT_VALUE;
+            _CURRENT_VALUE = 0;
 
-        emit FundraisingClosed();
+            emit FundraisingClosed();
+        } else {
+            require(
+                _CURRENT_VALUE == _VALUE,
+                "COLLECT: The funds have already been withdrawn."
+            );
+
+            _FUNDS_RAISED = _CURRENT_VALUE;
+            _CURRENT_VALUE = 0;
+        }
 
         //Send to devs
         require(
@@ -384,9 +352,12 @@ contract BranchOfPools is Ownable, Initializable {
             "ENTRUST: Don't have enough tokens!"
         );
 
-        uint256 toDistribute = ((((amount *
-            (_FUNDS_RAISED + _CURRENT_COMMISSION)) / 2) / _priceToken) /
-            (_FUNDS_RAISED / _priceToken));
+        uint256 vip_amount = ((amount * _VIP_VALUE) / _FUNDS_RAISED);
+
+        uint256 toDistribute = vip_amount +
+            ((((amount * ((_FUNDS_RAISED - _VIP_VALUE) + _CURRENT_COMMISSION)) /
+                2) / _priceToken) /
+                ((_FUNDS_RAISED - _VIP_VALUE) / _priceToken));
 
         emit TokenEntrusted(tokenAddr, amount);
 
@@ -401,7 +372,8 @@ contract BranchOfPools is Ownable, Initializable {
         _state = State.TokenDistribution;
         _CURRENT_VALUE_TOKEN = ERC20(tokenAddr).balanceOf(address(this));
 
-        _unlocks.push(toDistribute);
+        _unlocks.push(toDistribute - vip_amount);
+        _vipUnlocks.push(vip_amount);
         _fundLock = true;
     }
 
@@ -445,9 +417,6 @@ contract BranchOfPools is Ownable, Initializable {
         uint256 temp = _FUNDS_RAISED;
 
         _FUNDS_RAISED = fundsRaised;
-
-        emit RaisedFundsImported(temp, _FUNDS_RAISED);
-
         return true;
     }
 
@@ -463,8 +432,6 @@ contract BranchOfPools is Ownable, Initializable {
         uint256 temp = _CURRENT_COMMISSION;
 
         _CURRENT_COMMISSION = collectedCommission;
-
-        emit CurrentCommissionImported(temp, _CURRENT_COMMISSION);
         return true;
     }
 
@@ -495,10 +462,18 @@ contract BranchOfPools is Ownable, Initializable {
         );
 
         uint256 amount;
-        for (uint256 i = _openUnlocks[tx.origin]; i < currentUnlocks; i++) {
-            amount += _unlocks[i];
+
+        if (_vipList[tx.origin] == 0) {
+            for (uint256 i = _openUnlocks[tx.origin]; i < currentUnlocks; i++) {
+                amount += _unlocks[i];
+            }
+            amount = (amount * _valueUSDList[tx.origin]) / _FUNDS_RAISED;
+        } else {
+            for (uint256 i = _openUnlocks[tx.origin]; i < currentUnlocks; i++) {
+                amount += _vipUnlocks[i];
+            }
+            amount = (amount * _vipList[tx.origin]) / _VIP_VALUE;
         }
-        amount = (amount * _valueUSDList[tx.origin]) / _FUNDS_RAISED;
 
         _openUnlocks[tx.origin] = currentUnlocks;
         _CURRENT_VALUE_TOKEN -= amount;
@@ -519,27 +494,6 @@ contract BranchOfPools is Ownable, Initializable {
     }
 
     //TODO Add comments
-    function transferShare(address user)
-        external
-        onlyNotState(State.Pause)
-        onlyNotState(State.Fundrasing)
-    {
-        require(user != address(0), "SHARE: Zero address");
-
-        require(_valueUSDList[tx.origin] != 0, "SHARE: Your volume 0");
-        require(_usdEmergency[tx.origin] != 0);
-
-        require(_valueUSDList[user] == 0, "SHARE: Not another member");
-        require(_usdEmergency[user] == 0);
-
-        _valueUSDList[user] = _valueUSDList[tx.origin];
-        _usdEmergency[user] = _usdEmergency[tx.origin];
-
-        _valueUSDList[tx.origin] = 0;
-        _usdEmergency[tx.origin] = 0;
-    }
-
-    //TODO Add comments
     function getCommission() external {
         require(_fundLock, "GET: Not now");
         require(msg.sender == _fundAddress, "GET: Not you");
@@ -551,25 +505,6 @@ contract BranchOfPools is Ownable, Initializable {
             ERC20(_usd).transfer(_fundAddress, temp),
             "GET: Something wrong"
         );
-    }
-
-    function howMuch()
-        external
-        view
-        onlyState(State.Fundrasing)
-        returns (uint256)
-    {
-        return _VALUE - _CURRENT_VALUE;
-    }
-
-    /// @notice Returns an array of unlocks(number of tokens).
-    function getAllUnlocks() external view returns (uint256[] memory) {
-        return _unlocks;
-    }
-
-    /// @notice Returns the number of collected unlocks
-    function getUnlocks(address user) external view returns (uint256) {
-        return _openUnlocks[user];
     }
 
     /// @notice Returns the amount of money that the user has deposited excluding the commission
@@ -595,18 +530,22 @@ contract BranchOfPools is Ownable, Initializable {
             return 0;
         }
 
+        uint256 currentUnlocks = _unlocks.length;
+
         uint256 amount;
-        for (uint256 i = _openUnlocks[user]; i < _unlocks.length; i++) {
-            amount += _unlocks[i];
+        if (_vipList[user] == 0) {
+            for (uint256 i = _openUnlocks[user]; i < currentUnlocks; i++) {
+                amount += _unlocks[i];
+            }
+            amount = (amount * _valueUSDList[user]) / _FUNDS_RAISED;
+        } else {
+            for (uint256 i = _openUnlocks[user]; i < currentUnlocks; i++) {
+                amount += _vipUnlocks[i];
+            }
+            amount = (amount * _vipList[user]) / _VIP_VALUE;
         }
-        amount = (amount * _valueUSDList[user]) / _FUNDS_RAISED;
 
         return amount;
-    }
-
-    /// @notice Returns the list of pool members
-    function getUsers() external view returns (address[] memory) {
-        return _listParticipants;
     }
 
     /// @notice Auxiliary function for RootOfPools claimAll
