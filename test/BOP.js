@@ -42,10 +42,10 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
             root.address,
             4500000000,
             100,
-            1,
             devUSDT.address,
             fund.address,
-            7
+            7,
+            50
         );
     });
     describe("States", async function(){
@@ -261,7 +261,7 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                         TOKEN = await ethers.getContractFactory("SimpleToken");
                         token = await TOKEN.deploy("Test", "TST", 10000);
                         await token.connect(owner).transfer(branch.address, 10000);
-                        await branch.connect(owner).entrustToken(token.address, 10000);
+                        await branch.connect(owner).entrustToken(token.address);
 
                         await expect(branch.connect(owner).stopEmergency()).to.be.reverted;
                     });
@@ -351,9 +351,9 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                     TOKEN = await ethers.getContractFactory("SimpleToken");
                     token = await TOKEN.deploy("Test", "TST", 10000);
                     await token.connect(owner).transfer(branch.address, 10000);
-                    await branch.connect(owner).entrustToken(token.address, 10000);
+                    await branch.connect(owner).entrustToken(token.address);
 
-                    expect(await branch._unlocks(0)).to.equal(6250);
+                    expect(await branch._token()).to.equal(token.address);
                 });
 
             });
@@ -364,28 +364,19 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                         token = await TOKEN.deploy("Test", "TST", 10000);
                         await token.connect(owner).transfer(branch.address, 10000);
 
-                        await expect(branch.connect(addr1).entrustToken(token.address, 10000)).to.be.reverted;
-                    });
-
-                    it("If called in an inappropriate state", async function(){
-                        TOKEN = await ethers.getContractFactory("SimpleToken");
-                        token = await TOKEN.deploy("Test", "TST", 10000);
-                        await token.connect(owner).transfer(branch.address, 10000);
-                        await branch.connect(owner).entrustToken(token.address, 10000);
-
-                        await expect(branch.connect(owner).entrustToken(token.address, 10000)).to.be.reverted;
+                        await expect(branch.connect(addr1).entrustToken(token.address)).to.be.reverted;
                     });
 
                     it("If developers will try to distribute different tokens",async function() {
                         TOKEN = await ethers.getContractFactory("SimpleToken");
                         token = await TOKEN.deploy("Test", "TST", 10000);
                         await token.connect(owner).transfer(branch.address, 10000);
-                        await branch.connect(owner).entrustToken(token.address, 10000);
+                        await branch.connect(owner).entrustToken(token.address);
 
                         token2 = await TOKEN.deploy("Test", "TST", 10000);
                         await token2.connect(owner).transfer(branch.address, 10000);
                         
-                        await expect(branch.connect(owner).entrustToken(token2.address, 10000)).to.be.reverted;
+                        await expect(branch.connect(owner).entrustToken(token2.address)).to.be.reverted;
                     });
                 });
             });
@@ -402,13 +393,11 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
 
                 TOKEN = await ethers.getContractFactory("SimpleToken");
                 token = await TOKEN.deploy("Test", "TST", 10000);
+                await branch.connect(owner).entrustToken(token.address);
                 await token.connect(owner).transfer(branch.address, 10000);
-                await branch.connect(owner).entrustToken(token.address, 10000);
             });
             describe("Must be performed",async function() {
                 it("claim", async function(){
-                    expect((await branch.connect(owner).myCurrentAllocation(owner.address)).toString()).to.equal("6250");
-
                     await branch.connect(owner).claim();
 
                     expect((await branch.connect(owner).myCurrentAllocation(owner.address)).toString()).to.equal("0");

@@ -36,6 +36,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
 
     event PoolCreated(string name, address pool);
     event ImageAdded(address image);
+    event Response(address to, bool success, bytes data);
 
     modifier shouldExist(string calldata name) {
         require(
@@ -111,19 +112,6 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         emit PoolCreated(name, addrPool);
     }
 
-    event Response(address to, bool success, bytes data);
-
-    /*
-    // Let's imagine that contract B does not have the source code for
-    // contract A, but we do know the address of A and the function to call.
-    function testCallFoo(address payable _addr) public payable {
-        // You can send ether and specify a custom gas amount
-        (bool success, bytes memory data) = _addr.call{value: msg.value, gas: 5000}(
-            abi.encodeWithSignature("foo(string,uint256)", "call foo", 123)
-        );
-
-        emit Response(success, data);*/
-
     function Calling(string calldata name, bytes calldata dataIn)
         external
         onlyOwner
@@ -135,16 +123,19 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         emit Response(dst, success, data);
     }
 
+    //TODO
     function claimName(string calldata name) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).claim();
     }
 
+    //TODO
     function claimAddress(address pool) internal {
         require(pool != address(0), "ROOT: Selected pool does not exist!");
 
         BranchOfPools(pool).claim();
     }
 
+    //TODO
     function prepClaimAll(address user)
         external
         view
@@ -160,6 +151,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         return pools;
     }
 
+    //TODO
     ///@dev To find out the list of pools from which a user can mine something,
     ///     use the prepClaimAll function
     function claimAll(address[] calldata pools) external {
@@ -175,34 +167,5 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         }
 
         return temp;
-    }
-
-    function getAllocations(address user, uint256 step)
-        external
-        view
-        returns (uint256[10] memory)
-    {
-        uint256[10] memory amounts;
-        for (
-            uint256 i;
-            (i + 10 * step < (step + 1) * 10) && (i + 10 * step < Pools.length);
-            i++
-        ) {
-            amounts[i] = (BranchOfPools(Pools[i].pool).myAllocation(user));
-        }
-        return amounts;
-    }
-
-    function getState(string calldata name)
-        external
-        view
-        shouldExist(name)
-        returns (BranchOfPools.State)
-    {
-        return BranchOfPools(_poolsTable[name])._state();
-    }
-
-    function getRanks() external view returns (address) {
-        return _rankingAddress;
     }
 }
