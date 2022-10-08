@@ -132,6 +132,10 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         BranchOfPools(_poolsTable[name]).deposit(amount);
     }
 
+    function paybackEmergency(string calldata name) external shouldExist(name) {
+        BranchOfPools(_poolsTable[name]).paybackEmergency();
+    }
+
     function claimName(string calldata name) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).claim();
     }
