@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
 
-import "../contracts/Proxy.sol";
 import "../contracts/Ranking.sol";
 import "../contracts/BOP.sol";
 
@@ -89,7 +89,7 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     function createPool(
         string calldata name,
         uint256 imageNumber,
-        bytes calldata data
+        bytes calldata dataIn
     ) external onlyOwner {
         require(
             imageNumber <= Images.length,
@@ -100,16 +100,18 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
             "ROOT: Pool with this name already exists!"
         );
 
-        TransparentProxy pool = new TransparentProxy(Images[imageNumber], data);
+        address pool = Clones.clone(Images[imageNumber]);
 
-        address addrPool = address(pool);
+        (bool success, bytes memory data) = pool.call(dataIn);
 
-        _poolsTable[name] = addrPool;
+        emit Response(pool, success, data);
 
-        Pool memory poolT = Pool(addrPool, name);
+        _poolsTable[name] = pool;
+
+        Pool memory poolT = Pool(pool, name);
         Pools.push(poolT);
 
-        emit PoolCreated(name, addrPool);
+        emit PoolCreated(name, pool);
     }
 
     function Calling(string calldata name, bytes calldata dataIn)
@@ -123,12 +125,17 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         emit Response(dst, success, data);
     }
 
-    //TODO
+    function deposit(string calldata name, uint256 amount)
+        external
+        shouldExist(name)
+    {
+        BranchOfPools(_poolsTable[name]).deposit(amount);
+    }
+
     function claimName(string calldata name) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).claim();
     }
 
-    //TODO
     function claimAddress(address pool) internal {
         require(pool != address(0), "ROOT: Selected pool does not exist!");
 

@@ -127,8 +127,8 @@ describe("Root of Pools", async function () {
       await usdt.connect(addr1).approve(branch.address, 1000000000);
       await usdt.connect(addr2).approve(branch.address, 1000000000);
 
-      await branch.connect(addr1).deposit(500000000);
-      await branch.connect(addr2).deposit(500000000);
+      await root.connect(addr1).deposit("Test",500000000);
+      await root.connect(addr2).deposit("Test",500000000);
 
       expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal("500000000");
       expect((await branch.myAllocationEmergency(addr2.address)).toString()).to.equal("500000000");
@@ -169,8 +169,8 @@ describe("Root of Pools", async function () {
       await usdt.connect(addr1).approve(branch.address, 1000000000);
       await usdt.connect(addr2).approve(branch.address, 1000000000);
 
-      await branch.connect(addr1).deposit(500000000); //500 usdt
-      await branch.connect(addr2).deposit(500000000);
+      await root.connect(addr1).deposit("Test",500000000); //500 usdt
+      await root.connect(addr2).deposit("Test",500000000);
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
@@ -251,6 +251,18 @@ describe("Root of Pools", async function () {
 
       //Claim tokens
       await branch.connect(addr1).claim();
+
+      expect(
+        (
+          await branch.connect(addr1).myCurrentAllocation(addr1.address)
+        ).toString()
+      ).to.equal("0");
+      expect(
+        (
+          await branch.connect(addr2).myCurrentAllocation(addr2.address)
+        ).toString()
+      ).to.equal("28125");
+
       await branch.connect(addr2).claim();
 
       expect(
@@ -322,10 +334,10 @@ describe("Root of Pools", async function () {
       await usdt.connect(addr3).approve(branch.address, 1000000000);
       await usdt.connect(owner).approve(branch.address, 1000000000);
 
-      await branch.connect(addr1).deposit(a);
-      await branch.connect(addr2).deposit(b);
-      await branch.connect(addr3).deposit(c);
-      await branch.connect(owner).deposit(d);
+      await root.connect(addr1).deposit("Test",a);
+      await root.connect(addr2).deposit("Test",b);
+      await root.connect(addr3).deposit("Test",c);
+      await root.connect(owner).deposit("Test",d);
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
@@ -414,8 +426,8 @@ describe("Root of Pools", async function () {
       await usdt.connect(addr2).approve(branch.address, 1000000000);
       await usdt.connect(addr3).approve(branch.address, 1000000000);
 
-      await branch.connect(addr1).deposit(500000000); //500 usdt
-      await branch.connect(addr2).deposit(500000000); //500
+      await root.connect(addr1).deposit("Test",500000000); //500 usdt
+      await root.connect(addr2).deposit("Test",500000000); //500
       await branch.connect(addr3).deposit(500000000); //500
 
       //Close fundraising Test pool
@@ -545,7 +557,7 @@ describe("Root of Pools", async function () {
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
-      expect(branch.connect(addr1).deposit("Test", "115792089237316195423570985008687907853269984665640564039457584007913129639935")).to.be.reverted;
+      expect(root.connect(addr1).deposit("Test","Test", "115792089237316195423570985008687907853269984665640564039457584007913129639935")).to.be.reverted;
     });
 
     it("Check +1 token bag", async function(){
@@ -565,8 +577,8 @@ describe("Root of Pools", async function () {
 
       await usdt.connect(owner).transfer(branch.address, 1);
 
-      await branch.connect(addr1).deposit(500000000); //500 usdt
-      await branch.connect(addr2).deposit(500000000);
+      await root.connect(addr1).deposit("Test",500000000); //500 usdt
+      await root.connect(addr2).deposit("Test",500000000);
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
@@ -675,8 +687,8 @@ describe("Root of Pools", async function () {
 
       await usdt.connect(owner).transfer(branch.address, 1);
 
-      await branch.connect(addr1).deposit(500000000); //500 usdt
-      await branch.connect(addr2).deposit(500000000);
+      await root.connect(addr1).deposit("Test",500000000); //500 usdt
+      await root.connect(addr2).deposit("Test",500000000);
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();

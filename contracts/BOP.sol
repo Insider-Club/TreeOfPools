@@ -68,36 +68,6 @@ contract BranchOfPools is Initializable {
     bool private _fundLock = false;
     uint256 private _fundValue;
     uint256 public _fundCommission;
-    /*uint256 public _priceToken;
-
-    uint256 public _stepValue;
-    uint256 public _VALUE;
-    uint256 public _CURRENT_VALUE;
-    uint256 public _FUNDS_RAISED;
-    uint256 public _CURRENT_COMMISSION;
-    uint256 public _CURRENT_VALUE_TOKEN;
-    uint256 public _VALUE_TOKEN;
-    uint256 public _VIP_VALUE;
-    uint256 private _decimals;
-
-    address public _usd;
-    address public _token;
-    address public _devUSDAddress;
-
-    address public _fundAddress;
-    bool private _fundLock = false;
-    uint256 private _fundValue;
-    uint256 public _fundCommission;
-
-    mapping(address => uint256) public _vipList;
-    mapping(address => uint256) public _valueUSDList;
-    mapping(address => uint256) public _usdEmergency;
-    mapping(address => uint256) public _openUnlocks;
-
-    uint256[] public _unlocks;
-    uint256[] public _vipUnlocks;
-
-    address[] public _listParticipants;*/
 
     modifier onlyOwner() {
         require(msg.sender == _owner, "Ownable: Only owner");
@@ -241,8 +211,9 @@ contract BranchOfPools is Initializable {
     /// @param amount - The number of funds the user wants to deposit
     function deposit(uint256 amount) external onlyState(State.Fundrasing) {
         uint256 commission;
-        uint256[] memory rank = Ranking(RootOfPools_v013(_root).getRanks())
-            .getParRankOfUser(tx.origin);
+        uint256[] memory rank = Ranking(
+            RootOfPools_v013(_root)._rankingAddress()
+        ).getParRankOfUser(tx.origin);
         if (rank[2] != 0) {
             commission = (amount * rank[2]) / 100; //[Min, Max, Commission]
         }
@@ -371,34 +342,7 @@ contract BranchOfPools is Initializable {
             );
         }
 
-        /*require(
-            ERC20(tokenAddr).balanceOf(address(this)) >=
-                amount + _CURRENT_VALUE_TOKEN,
-            "ENTRUST: Don't have enough tokens!"
-        );
-
-        uint256 vip_amount = ((amount * _VIP_VALUE) / _FUNDS_RAISED);
-
-        uint256 toDistribute = vip_amount +
-            ((amount - vip_amount) *
-                ((_FUNDS_RAISED - _VIP_VALUE) + _CURRENT_COMMISSION)) /
-            ((_FUNDS_RAISED - _VIP_VALUE) * 2);
-
-        emit TokenEntrusted(tokenAddr, amount);
-
-        require(
-            ERC20(_token).transfer(
-                RootOfPools_v013(_root).owner(),
-                amount - toDistribute
-            ),
-            "ENTRUST: Transfer error"
-        ); */
-
         _state = State.TokenDistribution;
-
-        /*_unlocks.push(toDistribute - vip_amount);
-        _vipUnlocks.push(vip_amount);
-        _fundLock = true;*/
     }
 
     //TODO
@@ -559,6 +503,9 @@ contract BranchOfPools is Initializable {
             }
             uint256 value = _CURRENT_VALUE_TOKEN + _DISTRIBUTED_TOKEN;
             tmp = value - ((tmp * value) / _FUNDS_RAISED);
+
+            _DISTRIBUTED_TOKEN += tmp;
+            _CURRENT_VALUE_TOKEN -= tmp;
 
             if (tmp != 0) {
                 require(

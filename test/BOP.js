@@ -76,15 +76,15 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                 });
 
                 it("importTable", async function(){ 
-                    expect((await branch.myAllocation(addr1.address)).toString()).to.equal("0");
-                    expect((await branch.myAllocation(addr2.address)).toString()).to.equal("0");
-                    expect((await branch.myAllocation(addr3.address)).toString()).to.equal("0");
+                    expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal("0");
+                    expect((await branch.myAllocationEmergency(addr2.address)).toString()).to.equal("0");
+                    expect((await branch.myAllocationEmergency(addr3.address)).toString()).to.equal("0");
 
                     await branch.connect(owner).importTable([addr1.address, addr2.address, addr3.address], [100,100,100]);
 
-                    expect((await branch.myAllocation(addr1.address)).toString()).to.equal("100");
-                    expect((await branch.myAllocation(addr2.address)).toString()).to.equal("100");
-                    expect((await branch.myAllocation(addr3.address)).toString()).to.equal("100");
+                    expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal("100");
+                    expect((await branch.myAllocationEmergency(addr2.address)).toString()).to.equal("100");
+                    expect((await branch.myAllocationEmergency(addr3.address)).toString()).to.equal("100");
                 });
 
                 it("importFR", async function(){
@@ -407,12 +407,6 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                 describe("claim", async function(){
                     it("If the user has not funded the account, but tries to brandish", async function(){
                         await expect(branch.connect(addr1).claim()).to.be.reverted;
-                    });
-
-                    it("If the user tries to brand the tokens before the next unlock", async function(){
-                        await branch.connect(owner).claim()
-
-                        await expect(branch.connect(owner).claim()).to.be.reverted;
                     });
                 });
             });
