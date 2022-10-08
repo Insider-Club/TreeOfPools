@@ -24,15 +24,16 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
         string name;
     }
 
+    Pool[] public Pools;
+
     mapping(string => address) private _poolsTable;
-    mapping(address => bool) private _imageTable;
 
     address public _usdAddress;
     address public _rankingAddress;
 
-    Pool[] public Pools;
-
     address[] public Images;
+
+    mapping(address => bool) private _imageTable;
 
     event PoolCreated(string name, address pool);
     event ImageAdded(address image);
