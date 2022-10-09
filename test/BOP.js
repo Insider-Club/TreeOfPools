@@ -31,7 +31,7 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
         usdt = await USDT.deploy(6);
 
         //Create root
-        ROOT = await ethers.getContractFactory("RootOfPools_v013");
+        ROOT = await ethers.getContractFactory("RootOfPools_v2");
         root = await ROOT.deploy();
         await root.initialize(usdt.address, ranks.address);
 

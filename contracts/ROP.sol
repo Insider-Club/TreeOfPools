@@ -15,7 +15,7 @@ import "../contracts/BOP.sol";
 /// @author Nethny
 /// @dev Must be the owner of child contracts, to short-circuit the administrative
 /// rights to one address.
-contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
+contract RootOfPools_v2 is Initializable, OwnableUpgradeable {
     using AddressUpgradeable for address;
     using Strings for uint256;
 
@@ -83,6 +83,18 @@ contract RootOfPools_v013 is Initializable, OwnableUpgradeable {
     /// @notice Returns the linked branch contracts
     function getPools() external view returns (Pool[] memory) {
         return Pools;
+    }
+
+    function getPool(string calldata _name) external view returns (address) {
+        for (uint256 i = 0; i < Pools.length; i++) {
+            if (
+                keccak256(abi.encodePacked(Pools[i].name)) ==
+                keccak256(abi.encodePacked(_name))
+            ) {
+                return Pools[i].pool;
+            }
+        }
+        return address(0);
     }
 
     /// @notice Allows you to attach a new pool (branch contract)

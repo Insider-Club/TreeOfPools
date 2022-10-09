@@ -106,7 +106,7 @@ contract BranchOfPools is Initializable {
 
         _owner = msg.sender;
         _root = Root;
-        _usd = RootOfPools_v013(_root).getUSDAddress();
+        _usd = RootOfPools_v2(_root).getUSDAddress();
         _decimals = 10**ERC20(_usd).decimals();
         _VALUE = VALUE * _decimals;
         _stepValue = Step * _decimals;
@@ -211,9 +211,8 @@ contract BranchOfPools is Initializable {
     /// @param amount - The number of funds the user wants to deposit
     function deposit(uint256 amount) external onlyState(State.Fundrasing) {
         uint256 commission;
-        uint256[] memory rank = Ranking(
-            RootOfPools_v013(_root)._rankingAddress()
-        ).getParRankOfUser(tx.origin);
+        uint256[] memory rank = Ranking(RootOfPools_v2(_root)._rankingAddress())
+            .getParRankOfUser(tx.origin);
         if (rank[2] != 0) {
             commission = (amount * rank[2]) / 100; //[Min, Max, Commission]
         }
@@ -311,7 +310,7 @@ contract BranchOfPools is Initializable {
         //Send to admin
         require(
             ERC20(_usd).transfer(
-                RootOfPools_v013(_root).owner(),
+                RootOfPools_v2(_root).owner(),
                 ERC20(_usd).balanceOf(address(this)) - _fundValue
             ),
             "COLLECT: Transfer error"
@@ -487,7 +486,7 @@ contract BranchOfPools is Initializable {
             );
         }
 
-        address owner = RootOfPools_v013(_root).owner();
+        address owner = RootOfPools_v2(_root).owner();
 
         if (msg.sender == _owner) {
             require(_fundLock, "GET: Not now");

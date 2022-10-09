@@ -54,7 +54,7 @@ describe("Root of Pools", async function () {
     msig = await MSig.deploy([owner.address, addr1.address, addr2.address], 2);
     await msig.deployed();
 
-    Root = await ethers.getContractFactory("RootOfPools_v013");
+    Root = await ethers.getContractFactory("RootOfPools_v2");
     root = await upgrades.deployProxy(Root, [usdt.address, ranks.address], {
       initializer: "initialize",
     });
