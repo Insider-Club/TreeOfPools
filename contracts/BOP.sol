@@ -45,6 +45,7 @@ contract BranchOfPools is Initializable {
     uint256 public _VALUE;
     uint256 private _decimals;
     uint256 public _outCommission;
+    uint256 public _preSend;
 
     uint256 public _CURRENT_VALUE;
     uint256 public _FUNDS_RAISED;
@@ -269,6 +270,21 @@ contract BranchOfPools is Initializable {
         }
     }
 
+    function preSend(uint256 amount)
+        external
+        onlyOwner
+        onlyState(State.Fundrasing)
+    {
+        require(amount < _CURRENT_VALUE - _preSend);
+
+        _preSend += amount;
+
+        require(
+            ERC20(_usd).transfer(_devUSDAddress, amount),
+            "COLLECT: Transfer error"
+        );
+    }
+
     //TODO
     /// @notice Closes the fundraiser and distributes the funds raised
     /// Allows you to close the fundraiser before the fundraising amount is reached
@@ -298,7 +314,7 @@ contract BranchOfPools is Initializable {
 
         //Send to devs
         require(
-            ERC20(_usd).transfer(_devUSDAddress, _FUNDS_RAISED),
+            ERC20(_usd).transfer(_devUSDAddress, _FUNDS_RAISED - _preSend),
             "COLLECT: Transfer error"
         );
 

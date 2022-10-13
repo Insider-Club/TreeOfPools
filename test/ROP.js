@@ -172,6 +172,16 @@ describe("Root of Pools", async function () {
       await root.connect(addr1).deposit("Test",500000000); //500 usdt
       await root.connect(addr2).deposit("Test",500000000);
 
+      tx1 = await branch.populateTransaction.preSend(100000000);
+      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
+        "100000000"
+      );
+
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
       tx2 = await root.populateTransaction.Calling("Test", tx1.data);
