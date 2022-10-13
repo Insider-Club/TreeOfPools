@@ -45,7 +45,8 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
             devUSDT.address,
             fund.address,
             7,
-            50
+            50,
+            usdt.address
         );
     });
     describe("States", async function(){
