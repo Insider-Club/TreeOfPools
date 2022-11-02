@@ -436,7 +436,7 @@ contract BranchOfPools is Initializable {
     /// @notice Allows users to brand the distributed tokens
     function claim() external onlyState(State.TokenDistribution) {
         require(
-            _valueUSDList[tx.origin] > 0,
+            _usdEmergency[tx.origin] > 0,
             "CLAIM: You have no unredeemed tokens!"
         );
 

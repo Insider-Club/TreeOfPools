@@ -3,14 +3,12 @@ const readline = require("readline-sync");
 
 //Contract Address USD
 const USD = readline.question("Enter the USD contract address: ");
-const RANK = "0x9de4828d7af903cf046ac357685a015cfac18502";
-const MSIG = "0x051c11ec2f3cd11879b8012f942c7f81cc9d15ed";
 
 //Addresses of MultiSignature owners
 owners = [];
 
 numbOwners = 0;
-/*while(numbOwners < 3){
+while(numbOwners < 3){
   if(numbOwners != 0) console.log("WARNING: The number of multisig users should not be less than 3!");
   numbOwners = readline.question("Enter the number of multisig owners: ");
 }
@@ -22,7 +20,7 @@ for(i = 0; i < numbOwners; i++){
 const numb = readline.question("Enter the number of required confirmations for the multisig: ");
 
 const rankOwner = readline.question("Enter the address of the owner of the ranks \n(Do not specify anything if you want the owner of the ranks was multisig): ");
-*/
+
 
 async function RankDeploy(){
   const RANKS = await ethers.getContractFactory("Ranking");
@@ -39,11 +37,11 @@ async function MSigDeploy(){
 async function deploy() {
   const ROP = await ethers.getContractFactory("RootOfPools_v2");
 
-  //await RankDeploy();
+  await RankDeploy();
 
-  //await MSigDeploy();
+  await MSigDeploy();
 
-  const rop = await upgrades.deployProxy(ROP, [USD, RANK], {
+  const rop = await upgrades.deployProxy(ROP, [USD, ranks.address], {
     initializer: "initialize",
   });
 
@@ -57,7 +55,6 @@ async function deploy() {
   }
 
   console.log("ROP deployed to:", rop.address);
-  console.log("MSig deployed to:", msig.address);
   console.log("Ranks deployed to:", ranks.address);
 }
 

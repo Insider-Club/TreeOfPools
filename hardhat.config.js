@@ -2,7 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-ethers");
 require("@openzeppelin/hardhat-upgrades");
 require("@nomiclabs/hardhat-etherscan");
-const { PK, TBSC_API_KEY } = require("./env.json");
+const { PK, PK2, TBSC_API_KEY } = require("./env.json");
 
 module.exports = {
   solidity: {
@@ -21,27 +21,27 @@ module.exports = {
   networks: {
     testbsc: {
       url: `https://data-seed-prebsc-1-s3.binance.org:8545`,
-      accounts: [PK],
+      accounts: [PK, PK2],
       gas: 21000000,
     },
     eth: {
       url: `https://eth-mainnet.public.blastapi.io`,
-      accounts: [PK],
+      accounts: [PK, PK2],
       gas: 21000000,
     },
     bsc: {
       url: `https://bsc-dataseed2.binance.org`,
-      accounts: [PK],
+      accounts: [PK, PK2],
       gas: 21000000,
     },
     polygon: {
       url: `https://polygon-mainnet.public.blastapi.io`,
-      accounts: [PK],
+      accounts: [PK, PK2],
       gas: 21000000,
     },
     moonbeam: {
       url: `https://moonbeam.public.blastapi.io`,
-      accounts: [PK],
+      accounts: [PK, PK2],
       gas: 21000000,
     },
   },
