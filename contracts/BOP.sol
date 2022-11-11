@@ -70,6 +70,8 @@ contract BranchOfPools is Initializable {
     uint256 private _fundValue;
     uint256 public _fundCommission;
 
+    bool private _getCommissionFlag;
+
     modifier onlyOwner() {
         require(msg.sender == _owner, "Ownable: Only owner");
         _;
@@ -318,20 +320,6 @@ contract BranchOfPools is Initializable {
             ERC20(_usd).transfer(_devUSDAddress, _FUNDS_RAISED - _preSend),
             "COLLECT: Transfer error"
         );
-
-        //Send to fund
-        uint256 toFund = (_FUNDS_RAISED * _fundCommission) / 100;
-        _fundValue = (toFund * 40) / 100;
-        require(ERC20(_usd).transfer(_fundAddress, toFund - _fundValue), "");
-
-        //Send to admin
-        require(
-            ERC20(_usd).transfer(
-                RootOfPools_v2(_root).owner(),
-                ERC20(_usd).balanceOf(address(this)) - _fundValue
-            ),
-            "COLLECT: Transfer error"
-        );
     }
 
     /// @notice Allows developers to transfer tokens for distribution to contributors
@@ -491,6 +479,31 @@ contract BranchOfPools is Initializable {
 
     //TODO Add comments
     function getCommission() external onlyState(State.TokenDistribution) {
+        if (
+            (msg.sender == _owner) &&
+            (_state == State.WaitingToken) &&
+            (!_getCommissionFlag)
+        ) {
+            //Send to fund
+            uint256 toFund = (_FUNDS_RAISED * _fundCommission) / 100;
+            _fundValue = (toFund * 40) / 100;
+            require(
+                ERC20(_usd).transfer(_fundAddress, toFund - _fundValue),
+                ""
+            );
+
+            //Send to admin
+            require(
+                ERC20(_usd).transfer(
+                    RootOfPools_v2(_root).owner(),
+                    ERC20(_usd).balanceOf(address(this)) - _fundValue
+                ),
+                "COLLECT: Transfer error"
+            );
+            _getCommissionFlag = true;
+            return;
+        }
+
         if (msg.sender == _fundAddress) {
             require(_fundLock, "GET: Not now");
 

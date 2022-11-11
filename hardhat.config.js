@@ -24,6 +24,11 @@ module.exports = {
       accounts: [PK, PK2],
       gas: 21000000,
     },
+    goerli:{
+      url: `https://rpc.ankr.com/eth_goerli`,
+      accounts: [PK, PK2],
+      gas: 2100000,
+    },
     eth: {
       url: `https://eth-mainnet.public.blastapi.io`,
       accounts: [PK, PK2],
