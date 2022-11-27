@@ -75,42 +75,6 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
 
                     expect(await branch._state()).to.equal(1); 
                 });
-
-                it("importTable", async function(){ 
-                    expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal("0");
-                    expect((await branch.myAllocationEmergency(addr2.address)).toString()).to.equal("0");
-                    expect((await branch.myAllocationEmergency(addr3.address)).toString()).to.equal("0");
-
-                    await branch.connect(owner).importTable([addr1.address, addr2.address, addr3.address], [100,100,100]);
-
-                    expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal("100");
-                    expect((await branch.myAllocationEmergency(addr2.address)).toString()).to.equal("100");
-                    expect((await branch.myAllocationEmergency(addr3.address)).toString()).to.equal("100");
-                });
-
-                it("importFR", async function(){
-                    expect(await branch._FUNDS_RAISED()).to.equal(0); 
-
-                    await branch.connect(owner).importFR(1000);
-
-                    expect(await branch._FUNDS_RAISED()).to.equal(1000); 
-                });
-
-                it("importCC", async function(){
-                    expect(await branch._CURRENT_COMMISSION()).to.equal(0); 
-
-                    await branch.connect(owner).importCC(1000);
-
-                    expect(await branch._CURRENT_COMMISSION()).to.equal(1000); 
-                });
-
-                it("closeImport", async function() {
-                    expect(await branch._state()).to.equal(0); 
-
-                    await branch.connect(owner).closeImport();
-
-                    expect(await branch._state()).to.equal(2); 
-                });
             });
 
             describe("Must be rejected",async function(){
@@ -120,7 +84,8 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                     });
 
                     it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).closeImport();
+                        await branch.connect(owner).startFundraising();
+                        await branch.connect(owner).stopFundraising();
 
                         await expect(branch.connect(owner).changeTargetValue(50000)).to.be.reverted;
                     });
@@ -132,7 +97,8 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                     });
 
                     it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).closeImport();
+                        await branch.connect(owner).startFundraising();
+                        await branch.connect(owner).stopFundraising();
 
                         await expect(branch.connect(owner).changeStepValue(100)).to.be.reverted;
                     });
@@ -144,57 +110,10 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
                     });
 
                     it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).closeImport();
+                        await branch.connect(owner).startFundraising();
+                        await branch.connect(owner).stopFundraising();
 
                         await expect(branch.connect(owner).startFundraising()).to.be.reverted;
-                    });
-                });
-
-                describe("importTable", async function(){
-                    it("If the caller is not the owner", async function(){
-                        await expect(branch.connect(addr1).importTable([addr1.address, addr2.address], [100, 100])).to.be.reverted;
-                    });
-
-                    it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).closeImport();
-
-                        await expect(branch.connect(owner).importTable([addr1.address, addr2.address], [100, 100])).to.be.reverted;
-                    });
-                });
-
-                describe("importFR", async function(){
-                    it("If the caller is not the owner", async function(){
-                        await expect(branch.connect(addr1).importFR(100)).to.be.reverted;
-                    });
-
-                    it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).closeImport();
-
-                        await expect(branch.connect(owner).importFR(100)).to.be.reverted;
-                    });
-                });
-
-                describe("importCC", async function(){
-                    it("If the caller is not the owner", async function(){
-                        await expect(branch.connect(addr1).importCC(100)).to.be.reverted;
-                    });
-
-                    it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).closeImport();
-
-                        await expect(branch.connect(owner).importCC(100)).to.be.reverted;
-                    });
-                });
-
-                describe("closeImport", async function(){
-                    it("If the caller is not the owner", async function(){
-                        await expect(branch.connect(addr1).closeImport()).to.be.reverted;
-                    });
-
-                    it("If called in an inappropriate state", async function(){
-                        await branch.connect(owner).startFundraising();
-
-                        await expect(branch.connect(owner).closeImport()).to.be.reverted;
                     });
                 });
             });

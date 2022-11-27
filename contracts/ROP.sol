@@ -35,6 +35,23 @@ contract RootOfPools_v2 is Initializable, OwnableUpgradeable {
 
     mapping(address => bool) private _imageTable;
 
+    address public _marketing;
+    address public _marketingWallet;
+
+    address public _team;
+
+    function setMarketing(address mark) public onlyOwner {
+        _marketing = mark;
+    }
+
+    function setTeam(address team) public onlyOwner {
+        _team = team;
+    }
+
+    function setMarketingWallet(address mark) public onlyOwner {
+        _marketingWallet = mark;
+    }
+
     event PoolCreated(string name, address pool);
     event ImageAdded(address image);
     event Response(address to, bool success, bytes data);
@@ -48,10 +65,10 @@ contract RootOfPools_v2 is Initializable, OwnableUpgradeable {
     }
 
     /// @notice Replacement of the constructor to implement the proxy
-    function initialize(address usdAddress, address rankingAddress)
-        external
-        initializer
-    {
+    function initialize(
+        address usdAddress,
+        address rankingAddress
+    ) external initializer {
         require(
             usdAddress != address(0),
             "INIT: The usdAddress must not be zero."
@@ -127,21 +144,16 @@ contract RootOfPools_v2 is Initializable, OwnableUpgradeable {
         emit PoolCreated(name, pool);
     }
 
-    function Calling(string calldata name, bytes calldata dataIn)
-        external
-        onlyOwner
-        shouldExist(name)
-    {
-        address dst = _poolsTable[name];
+    function Calling(address dst, bytes calldata dataIn) external onlyOwner {
         (bool success, bytes memory data) = dst.call(dataIn);
 
         emit Response(dst, success, data);
     }
 
-    function deposit(string calldata name, uint256 amount)
-        external
-        shouldExist(name)
-    {
+    function deposit(
+        string calldata name,
+        uint256 amount
+    ) external shouldExist(name) {
         BranchOfPools(_poolsTable[name]).deposit(amount);
     }
 
@@ -160,11 +172,9 @@ contract RootOfPools_v2 is Initializable, OwnableUpgradeable {
     }
 
     //TODO
-    function prepClaimAll(address user)
-        external
-        view
-        returns (address[] memory pools)
-    {
+    function prepClaimAll(
+        address user
+    ) external view returns (address[] memory pools) {
         address[] memory out;
         for (uint256 i; i < Pools.length; i++) {
             if (BranchOfPools(Pools[i].pool).isClaimable(user)) {

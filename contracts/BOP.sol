@@ -70,6 +70,9 @@ contract BranchOfPools is Initializable {
     uint256 private _fundValue;
     uint256 public _fundCommission;
 
+    uint256 public _teamOut;
+    uint256 public _marketingOut;
+
     bool private _getCommissionFlag;
 
     modifier onlyOwner() {
@@ -111,7 +114,7 @@ contract BranchOfPools is Initializable {
         _owner = msg.sender;
         _root = Root;
         _usd = tokenUSD;
-        _decimals = 10**ERC20(_usd).decimals();
+        _decimals = 10 ** ERC20(_usd).decimals();
         _VALUE = VALUE * _decimals;
         _stepValue = Step * _decimals;
         _devUSDAddress = devUSDAddress;
@@ -122,7 +125,9 @@ contract BranchOfPools is Initializable {
 
     /// @notice Changes the target amount of funds we collect
     /// @param value - the new target amount of funds raised
-    function changeTargetValue(uint256 value)
+    function changeTargetValue(
+        uint256 value
+    )
         external
         onlyOwner
         onlyNotState(State.TokenDistribution)
@@ -133,7 +138,9 @@ contract BranchOfPools is Initializable {
 
     /// @notice Changes the step with which we raise funds
     /// @param step - the new step
-    function changeStepValue(uint256 step)
+    function changeStepValue(
+        uint256 step
+    )
         external
         onlyOwner
         onlyNotState(State.TokenDistribution)
@@ -273,11 +280,9 @@ contract BranchOfPools is Initializable {
         }
     }
 
-    function preSend(uint256 amount)
-        external
-        onlyOwner
-        onlyState(State.Fundrasing)
-    {
+    function preSend(
+        uint256 amount
+    ) external onlyOwner onlyState(State.Fundrasing) {
         require(amount < _CURRENT_VALUE - _preSend);
 
         _preSend += amount;
@@ -325,7 +330,9 @@ contract BranchOfPools is Initializable {
     /// @notice Allows developers to transfer tokens for distribution to contributors
     /// @dev This function is only called from the developers address _devInteractionAddress
     /// @param tokenAddr - Developer token address
-    function entrustToken(address tokenAddr)
+    function entrustToken(
+        address tokenAddr
+    )
         external
         onlyOwner
         onlyNotState(State.Emergency)
@@ -350,77 +357,6 @@ contract BranchOfPools is Initializable {
     }
 
     //TODO
-    /// @notice Allows you to transfer data about pool members
-    /// This is necessary to perform token distribution in another network
-    /// @dev the arrays of participants and their investments must be the same size.
-    /// Make sure that the order of both arrays is correct,
-    /// if the order is wrong, the resulting investment table will not match reality
-    /// @param usersData - Participant array
-    /// @param usersAmount - The size of participants' investments
-    function importTable(
-        address[] calldata usersData,
-        uint256[] calldata usersAmount
-    ) external onlyState(State.Pause) onlyOwner returns (bool) {
-        require(
-            usersData.length == usersAmount.length,
-            "IMPORT: The number not match!"
-        );
-
-        for (uint256 i; i < usersData.length; i++) {
-            _usdEmergency[usersData[i]] = usersAmount[i];
-        }
-
-        //Not all information is transferred to save gas
-        //Implications: It is not possible to fully import data from here
-        //To capture all the information you need to replenish this array with the right users
-        //_listParticipants = usersData;
-
-        return true;
-    }
-
-    //TODO
-    /// @notice Allows you to transfer data about pool members
-    /// This is necessary to perform token distribution in another network
-    /// @param fundsRaised - Number of funds raised
-    function importFR(uint256 fundsRaised)
-        external
-        onlyState(State.Pause)
-        onlyOwner
-        returns (bool)
-    {
-        _FUNDS_RAISED = fundsRaised;
-        return true;
-    }
-
-    //TODO
-    /// @notice Allows you to transfer data about pool members
-    /// This is necessary to perform token distribution in another network
-    /// @param collectedCommission - Number of commissions collected
-    function importCC(uint256 collectedCommission)
-        external
-        onlyState(State.Pause)
-        onlyOwner
-        returns (bool)
-    {
-        _CURRENT_COMMISSION = collectedCommission;
-        return true;
-    }
-
-    //TODO
-    /// @notice Allows you to transfer data about pool members
-    /// This is necessary to perform token distribution in another network
-    function closeImport()
-        external
-        onlyState(State.Pause)
-        onlyOwner
-        returns (bool)
-    {
-        _state = State.WaitingToken;
-
-        return true;
-    }
-
-    //TODO
     /// @notice Allows users to brand the distributed tokens
     function claim() external onlyState(State.TokenDistribution) {
         require(
@@ -433,8 +369,7 @@ contract BranchOfPools is Initializable {
         uint256 currentTokenBalance = ERC20(_token).balanceOf(address(this));
 
         if (_CURRENT_VALUE_TOKEN < currentTokenBalance) {
-            uint256 temp = currentTokenBalance - _CURRENT_VALUE_TOKEN;
-            _CURRENT_VALUE_TOKEN += temp;
+            _CURRENT_VALUE_TOKEN += currentTokenBalance - _CURRENT_VALUE_TOKEN;
         }
 
         if (_withoutCommission[tx.origin]) {
@@ -474,71 +409,130 @@ contract BranchOfPools is Initializable {
 
         if (_fundLock == false) {
             _fundLock = true;
+            getCommission();
         }
     }
 
     //TODO Add comments
-    function getCommission() external onlyState(State.TokenDistribution) {
+    function getCommission()
+        public
+        onlyNotState(State.Fundrasing)
+        onlyNotState(State.Pause)
+        onlyNotState(State.Emergency)
+    {
         if (
-            (msg.sender == _owner) &&
-            (_state == State.WaitingToken) &&
-            (!_getCommissionFlag)
+            ((_state == State.WaitingToken) ||
+                (_state == State.TokenDistribution)) && (!_getCommissionFlag)
         ) {
             //Send to fund
             uint256 toFund = (_FUNDS_RAISED * _fundCommission) / 100;
             _fundValue = (toFund * 40) / 100;
             require(
                 ERC20(_usd).transfer(_fundAddress, toFund - _fundValue),
-                ""
+                "COLLECT: Transfer error"
             );
 
             //Send to admin
+            uint256 amount = ERC20(_usd).balanceOf(address(this)) - _fundValue;
             require(
-                ERC20(_usd).transfer(
-                    RootOfPools_v2(_root).owner(),
-                    ERC20(_usd).balanceOf(address(this)) - _fundValue
-                ),
+                ERC20(_usd).transfer(RootOfPools_v2(_root).owner(), amount / 2),
                 "COLLECT: Transfer error"
             );
+
             _getCommissionFlag = true;
-            return;
         }
 
-        if (msg.sender == _fundAddress) {
-            require(_fundLock, "GET: Not now");
+        if (_fundLock) {
+            uint256 balance = ERC20(_usd).balanceOf(address(this));
+            if (balance != 0) {
+                uint256 amount = balance - _fundValue;
+                if (amount != 0) {
+                    require(
+                        ERC20(_usd).transfer(
+                            RootOfPools_v2(_root)._marketingWallet(),
+                            ERC20(_usd).balanceOf(address(this)) - _fundValue
+                        ),
+                        "COLLECT: Transfer error"
+                    );
+                }
 
-            uint256 temp = _fundValue;
-            _fundValue = 0;
+                uint256 temp = _fundValue;
+                _fundValue = 0;
 
-            require(
-                ERC20(_usd).transfer(_fundAddress, temp),
-                "GET: Transfer error"
-            );
-        }
+                if (temp != 0) {
+                    require(
+                        ERC20(_usd).transfer(_fundAddress, temp),
+                        "GET: Transfer error"
+                    );
+                }
+            }
 
-        address owner = RootOfPools_v2(_root).owner();
-
-        if (msg.sender == _owner) {
-            require(_fundLock, "GET: Not now");
-
-            uint256 tmp;
+            //========================================================== TOKЕN
+            uint256 temp = 0;
             for (uint256 i = 0; i < _listParticipants.length; i++) {
                 address user = _listParticipants[i];
                 if (_withoutCommission[user]) {
-                    tmp += _usdEmergency[user];
+                    temp += _usdEmergency[user];
                 } else {
-                    tmp += (_usdEmergency[user] * _outCommission) / 100;
+                    temp += (_usdEmergency[user] * _outCommission) / 100;
                 }
             }
             uint256 value = _CURRENT_VALUE_TOKEN + _DISTRIBUTED_TOKEN;
-            tmp = value - ((tmp * value) / _FUNDS_RAISED);
+            uint256 toMarketing = ((value * 15) / 100) - _marketingOut; //A?
+            _marketingOut += toMarketing;
 
-            _DISTRIBUTED_TOKEN += tmp;
-            _CURRENT_VALUE_TOKEN -= tmp;
+            if (toMarketing == 0) {
+                return;
+            }
 
-            if (tmp != 0) {
+            uint256 toTeam = ((value * 2) / 100) - _teamOut; //B?
+            _teamOut += toTeam;
+
+            _DISTRIBUTED_TOKEN += toMarketing + toTeam;
+            _CURRENT_VALUE_TOKEN = _CURRENT_VALUE_TOKEN - toMarketing - toTeam;
+
+            temp =
+                value -
+                ((temp * value) / _FUNDS_RAISED) -
+                toMarketing -
+                toTeam;
+
+            if (toTeam != 0) {
                 require(
-                    ERC20(_token).transfer(owner, tmp),
+                    ERC20(_token).transfer(
+                        RootOfPools_v2(_root)._team(),
+                        toTeam //точно?
+                    ),
+                    "GET: Transfer error"
+                );
+            }
+
+            if (toMarketing != 0) {
+                require(
+                    ERC20(_token).transfer(
+                        RootOfPools_v2(_root)._marketing(),
+                        toMarketing //точно?
+                    ),
+                    "GET: Transfer error"
+                );
+            }
+            //temp =
+            if (temp != 0) {
+                uint256 out = temp / 2;
+                _DISTRIBUTED_TOKEN += out;
+                _CURRENT_VALUE_TOKEN -= out;
+                require(
+                    ERC20(_token).transfer(RootOfPools_v2(_root).owner(), out),
+                    "GET: Transfer error"
+                );
+
+                _DISTRIBUTED_TOKEN += (temp - out);
+                _CURRENT_VALUE_TOKEN -= (temp - out);
+                require(
+                    ERC20(_token).transfer(
+                        RootOfPools_v2(_root)._marketingWallet(),
+                        temp - out
+                    ),
                     "GET: Transfer error"
                 );
             }
@@ -553,11 +547,9 @@ contract BranchOfPools is Initializable {
 
     /// @notice Returns the amount of funds that the user deposited
     /// @param user - address user
-    function myAllocationEmergency(address user)
-        external
-        view
-        returns (uint256)
-    {
+    function myAllocationEmergency(
+        address user
+    ) external view returns (uint256) {
         return _usdEmergency[user];
     }
 

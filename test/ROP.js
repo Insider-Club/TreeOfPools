@@ -66,6 +66,16 @@ describe("Root of Pools", async function () {
 
     await root.connect(owner).addImage(example.address);
 
+    MARK = await ethers.getContractFactory("Marketing");
+    mark = await MARK.deploy(root.address, root.address);
+    await root.connect(owner).setMarketing(mark.address);
+
+    await root.connect(owner).setMarketingWallet(root.address);
+
+    Team = await ethers.getContractFactory("Team");
+    team = await Team.deploy();
+    await root.connect(owner).setTeam(team.address);
+
     await root.connect(owner).transferOwnership(msig.address);
   });
 
@@ -190,12 +200,14 @@ describe("Root of Pools", async function () {
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
+      tx1 = await branch.connect(owner).getCommission();
+
       expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
         "800000000"
       ); // 800 usdt
       expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
-        "144000000"
-      ); // 144 usdt
+        "72000000"
+      );
       expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
         "33600000"
       ); // 33,6 usdt
@@ -217,14 +229,25 @@ describe("Root of Pools", async function () {
       //Claim tokens
       await branch.connect(addr1).claim();
 
-      tx1 = await branch.populateTransaction.getCommission();
+      expect((await usdt.balanceOf(root.address)).toString()).to.equal(
+        "72000000"
+      );
+
+      /*tx1 = await branch.populateTransaction.getCommission();
       tx2 = await root.populateTransaction.Calling("Test", tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
+      await msig.connect(addr1).confirmTransaction(id);*/
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "33750"
+        "9225" //bfor 33750
+      );
+
+      expect((await token.balanceOf(mark.address)).toString()).to.equal(
+        "13500" //markting
+      );
+      expect((await token.balanceOf(team.address)).toString()).to.equal(
+        "1800" //team wallt
       );
 
       await branch.connect(addr2).claim();
@@ -233,9 +256,20 @@ describe("Root of Pools", async function () {
       expect((await token.balanceOf(addr1.address)).toString()).to.equal(
         "28125"
       );
+      expect((await token.balanceOf(mark.address)).toString()).to.equal(
+        "13500" //markting
+      );
+      expect((await token.balanceOf(team.address)).toString()).to.equal(
+        "1800" //team wallt
+      );
       expect((await token.balanceOf(addr2.address)).toString()).to.equal(
         "28125"
       );
+
+      expect((await token.balanceOf(branch.address)).toString()).to.equal(
+        "0"
+      );
+
       expect(
         (
           await branch.connect(addr1).myCurrentAllocation(addr1.address)
@@ -247,12 +281,14 @@ describe("Root of Pools", async function () {
         ).toString()
       ).to.equal("0");
 
+      console.log("FUCK!");
       await branch.connect(fund).getCommission();
       expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
         "56000000"
       );
 
       //Next unlocks
+      
       await token.connect(dev).transfer(branch.address, 90000);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
       tx2 = await root.populateTransaction.Calling("Test", tx1.data);
@@ -514,7 +550,7 @@ describe("Root of Pools", async function () {
       expect((await token.balanceOf(addr3.address)).toString()).to.equal("333");
     });
 
-    it("Data import check", async function(){
+    /*it("Data import check", async function(){
       let UsersNumber = 400; //Number of users participating in this test
       users = [];
       values = [];
@@ -556,7 +592,7 @@ describe("Root of Pools", async function () {
         expect(await branch.myAllocationEmergency(users[i])).to.equal(100);
       }
 
-    });
+    });*/
 
     it("Check max value deposit", async function(){
       await usdt.connect(owner).transfer(addr1.address, "115792089237316195423570985008687907853269984665640564039457584007913129639935");
@@ -602,9 +638,6 @@ describe("Root of Pools", async function () {
       expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
         "800000000"
       ); // 800 usdt
-      expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
-        "144000001"
-      ); // 200 usdt
 
       //Create new token for entrust
       Token = await ethers.getContractFactory("SimpleToken");
@@ -678,7 +711,7 @@ describe("Root of Pools", async function () {
       await msig.connect(addr1).confirmTransaction(id);
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "67501"
+        "9225"
       );
     });
 
@@ -712,33 +745,10 @@ describe("Root of Pools", async function () {
       expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
         "800000000"
       ); // 800 usdt
-      expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
-        "144000001"
-      );
-      expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
-        "33600000"
-      );
 
       //Refund from dev
       await usdt.connect(devUSDT).transfer(branch.address, 800000000);
       
-      //Refund from admin
-      tx = await usdt.populateTransaction.transfer(branch.address, 144000001);
-      await msig.connect(owner).submitTransaction(usdt.address, 0, tx.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
-
-      //Try stop
-      tx1 = await branch.populateTransaction.stopEmergency();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
-      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
-
-      expect(await branch._state()).to.equal(2);
-      
-      //Refund from fund
-      await usdt.connect(fund).transfer(branch.address, 33600000);
 
       //Try stop
       tx1 = await branch.populateTransaction.stopEmergency();
@@ -751,7 +761,7 @@ describe("Root of Pools", async function () {
 
     });
 
-    it("Check import function", async function(){
+    /*it("Check import function", async function(){
 
       //Import Table
       tx1 = await branch.populateTransaction.importTable([addr1.address, addr2.address, addr3.address], [100, 200, 300]);
@@ -831,6 +841,6 @@ describe("Root of Pools", async function () {
         ).toString()
       ).to.equal("56250");
 
-    });
+    });*/
   });
 });
