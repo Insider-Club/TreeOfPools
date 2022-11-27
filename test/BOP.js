@@ -34,6 +34,12 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
         ROOT = await ethers.getContractFactory("RootOfPools_v2");
         root = await ROOT.deploy();
         await root.initialize(usdt.address, ranks.address);
+        
+        await root.connect(owner).setMarketing(addr1.address);
+
+        await root.connect(owner).setTeam(addr2.address);
+
+        await root.connect(owner).setMarketingWallet(addr3.address);
 
         //Create branch
         BRANCH = await ethers.getContractFactory("BranchOfPools");

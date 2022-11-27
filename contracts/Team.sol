@@ -23,6 +23,12 @@ contract Team is Ownable {
     mapping(address => Project) projects;
     string[] listMembers;
 
+    function getMember(
+        string calldata _name
+    ) public view returns (Member memory) {
+        return members[_name];
+    }
+
     //Member part
     function addMember(
         string calldata _name,
@@ -110,6 +116,8 @@ contract Team is Ownable {
                     }
 
                     if (toSend != 0) {
+                        projects[_token].withdrawn[msg.sender] += toSend;
+                        projects[_token].currentBalance -= toSend;
                         require(
                             ERC20(_token).transfer(msg.sender, toSend),
                             "Unknown sending error"

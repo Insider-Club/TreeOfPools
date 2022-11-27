@@ -15,6 +15,7 @@ contract Marketing is Ownable {
     struct Project {
         User[] users;
         mapping(address => uint256) withdrawn;
+        uint256 totalWithdrawn;
         uint256 currentTotalValue;
         uint256 totalValue;
         address token;
@@ -23,14 +24,12 @@ contract Marketing is Ownable {
         uint256 closingTimeStamp;
     }
 
-    address root;
     address globalAdmin;
 
     mapping(string => Project) Projects;
     string[] public listProjects;
 
-    constructor(address _root, address _globalAdmin) {
-        root = _root;
+    constructor(address _globalAdmin) {
         globalAdmin = _globalAdmin;
     }
 
@@ -45,6 +44,30 @@ contract Marketing is Ownable {
                 return i;
             }
         }
+    }
+
+    function getProject(
+        string calldata _name
+    )
+        public
+        view
+        returns (
+            uint256 totalWithdrawn,
+            uint256 currentTotalValue,
+            uint256 totalValue,
+            address token,
+            bool isClosed,
+            uint256 closingTimeStamp
+        )
+    {
+        return (
+            Projects[_name].totalWithdrawn,
+            Projects[_name].currentTotalValue,
+            Projects[_name].totalValue,
+            Projects[_name].token,
+            Projects[_name].isClosed,
+            Projects[_name].closingTimeStamp
+        );
     }
 
     function getUserAmount(
@@ -98,6 +121,17 @@ contract Marketing is Ownable {
     }
 
     function closeProject(string calldata _name) public onlyOwner {
+        Project storage project = Projects[_name];
+        uint256 total = 0;
+        for (uint256 i = 0; i < project.users.length; i++) {
+            total += project.users[i].amount;
+        }
+
+        require(
+            project.totalValue == total,
+            "The import data do not match the specified"
+        );
+
         Projects[_name].isClosed = true;
     }
 
@@ -112,9 +146,9 @@ contract Marketing is Ownable {
         uint256 totalValue = project.totalValue;
         uint256 currentValue = ERC20(project.token).balanceOf(address(this));
 
-        if (currentValue > project.currentTotalValue) {
+        if (currentValue + project.totalWithdrawn > project.currentTotalValue) {
             Projects[_name].currentTotalValue +=
-                currentValue -
+                (currentValue + project.totalWithdrawn) -
                 project.currentTotalValue;
         }
 
@@ -122,6 +156,8 @@ contract Marketing is Ownable {
             totalValue) - project.withdrawn[project.users[userId].userAdr];
 
         project.withdrawn[project.users[userId].userAdr] += toSend;
+
+        Projects[_name].totalWithdrawn += toSend;
 
         require(
             ERC20(project.token).transfer(msg.sender, toSend),
