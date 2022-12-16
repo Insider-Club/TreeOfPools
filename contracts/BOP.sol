@@ -70,9 +70,6 @@ contract BranchOfPools is Initializable {
     uint256 private _fundValue;
     uint256 public _fundCommission;
 
-    uint256 public _teamOut;
-    uint256 public _marketingOut;
-
     bool private _getCommissionFlag;
 
     modifier onlyOwner() {
@@ -80,13 +77,13 @@ contract BranchOfPools is Initializable {
         _;
     }
 
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    /*function transferOwnership(address newOwner) public virtual onlyOwner {
         require(
             newOwner != address(0),
             "Ownable: new owner is the zero address"
         );
         _owner = newOwner;
-    }
+    }*/
 
     /// @notice Assigns the necessary values to the variables
     /// @dev Just a constructor
@@ -443,59 +440,63 @@ contract BranchOfPools is Initializable {
         }
 
         if (_fundLock) {
-            uint256 balance = ERC20(_usd).balanceOf(address(this));
-            if (balance != 0) {
-                uint256 amount = balance - _fundValue;
-                if (amount != 0) {
-                    require(
-                        ERC20(_usd).transfer(
-                            RootOfPools_v2(_root)._marketingWallet(),
-                            ERC20(_usd).balanceOf(address(this)) - _fundValue
-                        ),
-                        "COLLECT: Transfer error"
-                    );
-                }
+            if (_fundValue != 0) {
+                uint256 balance = ERC20(_usd).balanceOf(address(this));
+                if (balance != 0) {
+                    uint256 amount = balance - _fundValue;
+                    if (amount != 0) {
+                        require(
+                            ERC20(_usd).transfer(
+                                RootOfPools_v2(_root)._marketingWallet(),
+                                ERC20(_usd).balanceOf(address(this)) -
+                                    _fundValue
+                            ),
+                            "COLLECT: Transfer error"
+                        );
+                    }
 
-                uint256 temp = _fundValue;
-                _fundValue = 0;
+                    uint256 temp = _fundValue;
+                    _fundValue = 0;
 
-                if (temp != 0) {
-                    require(
-                        ERC20(_usd).transfer(_fundAddress, temp),
-                        "GET: Transfer error"
-                    );
+                    if (temp != 0) {
+                        require(
+                            ERC20(_usd).transfer(_fundAddress, temp),
+                            "GET: Transfer error"
+                        );
+                    }
                 }
             }
 
             //========================================================== TOKЕN
             uint256 temp = 0;
+            uint256 value = _CURRENT_VALUE_TOKEN + _DISTRIBUTED_TOKEN;
             for (uint256 i = 0; i < _listParticipants.length; i++) {
                 address user = _listParticipants[i];
                 if (_withoutCommission[user]) {
-                    temp += _usdEmergency[user];
+                    temp += (((_usdEmergency[user] * value) / _FUNDS_RAISED));
                 } else {
-                    temp += (_usdEmergency[user] * _outCommission) / 100;
+                    temp += ((((_usdEmergency[user] * value) / _FUNDS_RAISED) *
+                        _outCommission) / 100);
                 }
             }
-            uint256 value = _CURRENT_VALUE_TOKEN + _DISTRIBUTED_TOKEN;
-            uint256 toMarketing = ((value * 15) / 100) - _marketingOut; //A?
-            _marketingOut += toMarketing;
 
-            if (toMarketing == 0) {
-                return;
-            }
+            //_mamrktingOut == _issuedTokens[address(0)]
+            uint256 toMarketing = ((value * 15) / 100) -
+                _issuedTokens[address(0)]; //A?
+            _issuedTokens[address(0)] += toMarketing;
 
-            uint256 toTeam = ((value * 2) / 100) - _teamOut; //B?
-            _teamOut += toTeam;
+            ////_tamOut == _issuedTokens[address(1)]
+            uint256 toTeam = ((value * 2) / 100) - _issuedTokens[address(1)]; //B?
+            _issuedTokens[address(1)] += toTeam;
 
             _DISTRIBUTED_TOKEN += toMarketing + toTeam;
-            _CURRENT_VALUE_TOKEN = _CURRENT_VALUE_TOKEN - toMarketing - toTeam;
+            _CURRENT_VALUE_TOKEN -= (toMarketing + toTeam);
 
             temp =
                 value -
-                ((temp * value) / _FUNDS_RAISED) -
-                toMarketing -
-                toTeam;
+                (temp + _issuedTokens[address(0)] + _issuedTokens[address(1)]) -
+                _issuedTokens[address(this)];
+            _issuedTokens[address(this)] += temp;
 
             if (toTeam != 0) {
                 require(
@@ -518,20 +519,20 @@ contract BranchOfPools is Initializable {
             }
             //temp =
             if (temp != 0) {
-                uint256 out = temp / 2;
-                _DISTRIBUTED_TOKEN += out;
-                _CURRENT_VALUE_TOKEN -= out;
+                _DISTRIBUTED_TOKEN += temp;
+                _CURRENT_VALUE_TOKEN -= temp;
                 require(
-                    ERC20(_token).transfer(RootOfPools_v2(_root).owner(), out),
+                    ERC20(_token).transfer(
+                        RootOfPools_v2(_root).owner(),
+                        temp / 2
+                    ),
                     "GET: Transfer error"
                 );
 
-                _DISTRIBUTED_TOKEN += (temp - out);
-                _CURRENT_VALUE_TOKEN -= (temp - out);
                 require(
                     ERC20(_token).transfer(
                         RootOfPools_v2(_root)._marketingWallet(),
-                        temp - out
+                        temp / 2
                     ),
                     "GET: Transfer error"
                 );

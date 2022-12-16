@@ -127,9 +127,8 @@ describe("Root of Pools", async function () {
       );
 
       //Open deposit in Test pool
-
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -138,7 +137,7 @@ describe("Root of Pools", async function () {
       await usdt.connect(addr1).approve(branch.address, 1000000000);
       await usdt.connect(addr2).approve(branch.address, 1000000000);
 
-      /*await root.connect(addr1).deposit("Test",500000000);
+      await root.connect(addr1).deposit("Test",500000000);
       await root.connect(addr2).deposit("Test",500000000);
 
       expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal("500000000");
@@ -146,7 +145,7 @@ describe("Root of Pools", async function () {
 
       //Emergency stop
       tx1 = await branch.populateTransaction.stopEmergency();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -161,17 +160,18 @@ describe("Root of Pools", async function () {
       );
       expect((await usdt.balanceOf(addr2.address)).toString()).to.equal(
         "1000000000"
-      );*/
+      );
     });
 
     it("Should be through a full cycle of deposit and mandatory completion of collection with a double unlocks", async function () {
       //Give some usdt user addr1 and addr2
       await usdt.connect(owner).transfer(addr1.address, 1000000000); //1000 usdt
       await usdt.connect(owner).transfer(addr2.address, 1000000000);
+      await usdt.connect(owner).transfer(addr3.address, 1000000000);
 
       //Open deposit in Test pool
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -179,12 +179,16 @@ describe("Root of Pools", async function () {
       //Deposit in Test pool
       await usdt.connect(addr1).approve(branch.address, 1000000000);
       await usdt.connect(addr2).approve(branch.address, 1000000000);
+      await usdt.connect(addr3).approve(branch.address, 1000000000);
+      await usdt.connect(owner).approve(branch.address, 1000000000);
 
       await root.connect(addr1).deposit("Test",500000000); //500 usdt
       await root.connect(addr2).deposit("Test",500000000);
+      await root.connect(addr3).deposit("Test",200000000);
+      await root.connect(owner).deposit("Test",100000000);
 
       tx1 = await branch.populateTransaction.preSend(100000000);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -195,22 +199,23 @@ describe("Root of Pools", async function () {
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
-      tx1 = await branch.connect(owner).getCommission();
+      //tx1 = await branch.connect(owner).getCommission();
 
       expect((await usdt.balanceOf(devUSDT.address)).toString()).to.equal(
-        "800000000"
+        "1060000000"
       ); // 800 usdt
-      expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
+      
+      /*expect((await usdt.balanceOf(msig.address)).toString()).to.equal(
         "72000000"
       );
       expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
         "33600000"
-      ); // 33,6 usdt
+      ); // 33,6 usdt*/
 
       //Create new token for entrust
       Token = await ethers.getContractFactory("SimpleToken");
@@ -220,7 +225,7 @@ describe("Root of Pools", async function () {
       await token.connect(dev).transfer(branch.address, 90000);
 
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -228,46 +233,47 @@ describe("Root of Pools", async function () {
 
       //Claim tokens
       await branch.connect(addr1).claim();
+      await branch.connect(owner).claim();
 
       expect((await usdt.balanceOf(root.address)).toString()).to.equal(
-        "72000000"
+        "82900000"
       );
 
-      /*tx1 = await branch.populateTransaction.getCommission();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx1 = await branch.populateTransaction.getCommission();
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);*/
+      await msig.connect(addr1).confirmTransaction(id);
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "9225" //bfor 33750
+        "7634" //bfor 33750
       );
 
       expect((await token.balanceOf(mark.address)).toString()).to.equal(
-        "13500" //markting
+        "13500" //marketing
       );
       expect((await token.balanceOf(team.address)).toString()).to.equal(
-        "1800" //team wallt
+        "1800" //team wallet
       );
 
       await branch.connect(addr2).claim();
 
 
       expect((await token.balanceOf(addr1.address)).toString()).to.equal(
-        "28125"
+        "21226"
       );
       expect((await token.balanceOf(mark.address)).toString()).to.equal(
-        "13500" //markting
+        "13500" //marketing
       );
       expect((await token.balanceOf(team.address)).toString()).to.equal(
-        "1800" //team wallt
+        "1800" //team wallet
       );
       expect((await token.balanceOf(addr2.address)).toString()).to.equal(
-        "28125"
+        "21226"
       );
 
       expect((await token.balanceOf(branch.address)).toString()).to.equal(
-        "0"
+        "8490"
       );
 
       expect(
@@ -281,20 +287,17 @@ describe("Root of Pools", async function () {
         ).toString()
       ).to.equal("0");
 
-      console.log("FUCK!");
-      await branch.connect(fund).getCommission();
-      expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
-        "56000000"
-      );
-
-      //Next unlocks
-      
       await token.connect(dev).transfer(branch.address, 90000);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
+
+      await branch.connect(fund).getCommission();
+      expect((await usdt.balanceOf(fund.address)).toString()).to.equal(
+        "74200000"
+      );
 
       //Claim tokens
       await branch.connect(addr1).claim();
@@ -308,9 +311,18 @@ describe("Root of Pools", async function () {
         (
           await branch.connect(addr2).myCurrentAllocation(addr2.address)
         ).toString()
-      ).to.equal("28125");
+      ).to.equal("21226");
 
+      await branch.connect(addr1).claim();
       await branch.connect(addr2).claim();
+      await branch.connect(addr3).claim();
+      await branch.connect(owner).claim();
+
+      tx1 = await branch.populateTransaction.getCommission();
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
 
       expect(
         (
@@ -322,11 +334,42 @@ describe("Root of Pools", async function () {
           await branch.connect(addr2).myCurrentAllocation(addr2.address)
         ).toString()
       ).to.equal("0");
+      expect(
+        (
+          await branch.connect(addr3).myCurrentAllocation(addr2.address)
+        ).toString()
+      ).to.equal("0");
+      expect(
+        (
+          await branch.connect(owner).myCurrentAllocation(addr2.address)
+        ).toString()
+      ).to.equal("0");
       expect((await token.balanceOf(addr1.address)).toString()).to.equal(
-        "56250"
+        "42452"
       );
       expect((await token.balanceOf(addr2.address)).toString()).to.equal(
-        "56250"
+        "42452"
+      );
+      expect((await token.balanceOf(addr3.address)).toString()).to.equal(
+        "16981"
+      );
+      expect((await token.balanceOf(owner.address)).toString()).to.equal(
+        "16981"
+      );
+      expect((await token.balanceOf(mark.address)).toString()).to.equal(
+        "27000"
+      );
+      expect((await token.balanceOf(team.address)).toString()).to.equal(
+        "3600"
+      );
+      expect((await token.balanceOf(msig.address)).toString()).to.equal(
+        "15267"
+      );
+      expect((await token.balanceOf(root.address)).toString()).to.equal(
+        "15267"
+      );
+      expect((await token.balanceOf(branch.address)).toString()).to.equal(
+        "0"
       );
     });
 
@@ -366,7 +409,7 @@ describe("Root of Pools", async function () {
 
       //Open deposit in Test pool
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -388,7 +431,7 @@ describe("Root of Pools", async function () {
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -400,7 +443,7 @@ describe("Root of Pools", async function () {
       await token.connect(dev).transfer(branch.address, del_tokens);
       
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -433,7 +476,7 @@ describe("Root of Pools", async function () {
       //Next unlocks
       await token.connect(dev).transfer(branch.address, del_tokens);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -463,7 +506,7 @@ describe("Root of Pools", async function () {
 
       //Open deposit in Test pool
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -479,7 +522,7 @@ describe("Root of Pools", async function () {
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -490,7 +533,7 @@ describe("Root of Pools", async function () {
       await token.connect(owner).transfer(dev.address, 1000000);
       await token.connect(dev).transfer(branch.address, 800);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -519,7 +562,7 @@ describe("Root of Pools", async function () {
       //Next unlocks
       await token.connect(dev).transfer(branch.address, 800);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -565,25 +608,25 @@ describe("Root of Pools", async function () {
 
       console.log(users, values);
       tx1 = await branch.populateTransaction.importTable(users, values);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       tx1 = await branch.populateTransaction.importFR(FR);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       tx1 = await branch.populateTransaction.importCC(CC);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       tx1 = await branch.populateTransaction.closeImport();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -600,7 +643,7 @@ describe("Root of Pools", async function () {
 
       //Open deposit in Test pool
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -614,7 +657,7 @@ describe("Root of Pools", async function () {
 
       //Open deposit in Test pool
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -630,7 +673,7 @@ describe("Root of Pools", async function () {
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -649,7 +692,7 @@ describe("Root of Pools", async function () {
       await token.connect(dev).transfer(branch.address, 1);
 
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -678,7 +721,7 @@ describe("Root of Pools", async function () {
       //Next unlocks
       await token.connect(dev).transfer(branch.address, 90000);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -705,13 +748,13 @@ describe("Root of Pools", async function () {
       );
 
       tx1 = await branch.populateTransaction.getCommission();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "9225"
+        "18450"
       );
     });
 
@@ -721,7 +764,7 @@ describe("Root of Pools", async function () {
 
       //Open deposit in Test pool
       tx1 = await branch.populateTransaction.startFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -737,7 +780,7 @@ describe("Root of Pools", async function () {
 
       //Close fundraising Test pool
       tx1 = await branch.populateTransaction.stopFundraising();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -752,7 +795,7 @@ describe("Root of Pools", async function () {
 
       //Try stop
       tx1 = await branch.populateTransaction.stopEmergency();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -765,27 +808,27 @@ describe("Root of Pools", async function () {
 
       //Import Table
       tx1 = await branch.populateTransaction.importTable([addr1.address, addr2.address, addr3.address], [100, 200, 300]);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       //Import FR
       tx1 = await branch.populateTransaction.importFR(480);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       //Import CC
       tx1 = await branch.populateTransaction.importCC(120);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       tx1 = await branch.populateTransaction.closeImport();
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
@@ -806,7 +849,7 @@ describe("Root of Pools", async function () {
       //Unlock
       await token.connect(dev).transfer(branch.address, 90000);
       tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling("Test", tx1.data);
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
