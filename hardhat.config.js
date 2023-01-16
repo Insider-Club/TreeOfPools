@@ -25,7 +25,7 @@ module.exports = {
       gas: 21000000,
     },
     goerli:{
-      url: `https://rpc.ankr.com/eth_goerli`,
+      url: `https://eth-goerli.public.blastapi.io`,
       accounts: [PK, PK2],
       gas: 2100000,
     },

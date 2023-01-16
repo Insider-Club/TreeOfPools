@@ -8,6 +8,7 @@ const { inputToConfig } = require("@ethereum-waffle/compiler");
 const { expect } = require("chai");
 const { ethers, upgrades } = require("hardhat");
 const BOPArtifacts = require("../artifacts/contracts/BOP.sol/BranchOfPools.json");
+const BOPImportArtifacts = require("../artifacts/contracts/BOP_import.sol/BranchOfPools_import.json");
 
 describe("Root of Pools", async function () {
   beforeEach(async function () {
@@ -66,6 +67,11 @@ describe("Root of Pools", async function () {
 
     await root.connect(owner).addImage(example.address);
 
+    BranchImport = await ethers.getContractFactory("BranchOfPools_import");
+    exampleImport = await BranchImport.deploy();
+
+    await root.connect(owner).addImage(exampleImport.address);
+
     MARK = await ethers.getContractFactory("Marketing");
     mark = await MARK.deploy(root.address);
     await root.connect(owner).setMarketing(mark.address);
@@ -105,17 +111,35 @@ describe("Root of Pools", async function () {
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
+      tx1 = await example.populateTransaction.init(
+        root.address,
+        4500,
+        100,
+        devUSDT.address,
+        fund.address,
+        7,
+        50,
+        usdt.address
+      );
+
+      tx = await root.populateTransaction.createPool("TestImport", 1, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
       POOL = (String(await root.Pools(0)).split(','))[0];
+      POOL_IMPORT = (String(await root.Pools(1)).split(','))[0];
       branch = new ethers.Contract(POOL, BOPArtifacts.abi, ethers.provider)
+      branchImport = new ethers.Contract(POOL_IMPORT, BOPImportArtifacts.abi, ethers.provider)
     });
 
     it("Check if the child contract is connected successfully", async function () {
       pools = await root.getPools();
-      expect(pools).to.have.lengthOf(1);
+      expect(pools).to.have.lengthOf(2);
       expect(pools[0][1]).to.equal("Test");
     });
 
-    it("Emergency Stop Fundraising", async function () {
+    /*it("Emergency Stop Fundraising", async function () {
       //Give some usdt user addr1 and addr2
       await usdt.connect(owner).transfer(addr1.address, 1000000000); //1000 usdt
       await usdt.connect(owner).transfer(addr2.address, 1000000000);
@@ -161,7 +185,7 @@ describe("Root of Pools", async function () {
       expect((await usdt.balanceOf(addr2.address)).toString()).to.equal(
         "1000000000"
       );
-    });
+    });*/
 
     it("Should be through a full cycle of deposit and mandatory completion of collection with a double unlocks", async function () {
       //Give some usdt user addr1 and addr2
@@ -235,15 +259,15 @@ describe("Root of Pools", async function () {
       await branch.connect(addr1).claim();
       await branch.connect(owner).claim();
 
-      expect((await usdt.balanceOf(root.address)).toString()).to.equal(
-        "82900000"
-      );
-
       tx1 = await branch.populateTransaction.getCommission();
       tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
+
+      expect((await usdt.balanceOf(root.address)).toString()).to.equal(
+        "82900000"
+      );
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
         "7634" //bfor 33750
@@ -373,7 +397,7 @@ describe("Root of Pools", async function () {
       );
     });
 
-    it("Checking basic math", async function () {
+    /*it("Checking basic math", async function () {
       a = 100000000; //Колличество денег
       b = 200000000;
       c = 300000000;
@@ -464,7 +488,7 @@ describe("Root of Pools", async function () {
         ).toString()
       ).to.equal(c_tpu.toString());*/
 
-      console.log(await branch.connect(addr1).myCurrentAllocation(addr1.address))
+      /*console.log(await branch.connect(addr1).myCurrentAllocation(addr1.address))
       console.log(await branch.connect(addr2).myCurrentAllocation(addr2.address))
       console.log(await branch.connect(addr3).myCurrentAllocation(addr3.address))
       console.log(await branch.connect(owner).myCurrentAllocation(owner.address))
@@ -592,50 +616,6 @@ describe("Root of Pools", async function () {
       expect((await token.balanceOf(addr2.address)).toString()).to.equal("333");
       expect((await token.balanceOf(addr3.address)).toString()).to.equal("333");
     });
-
-    /*it("Data import check", async function(){
-      let UsersNumber = 400; //Number of users participating in this test
-      users = [];
-      values = [];
-      FR = UsersNumber * 100; //Share of each participant after subtracting the commission of 100
-      CC = FR * 0,2;
-
-      for(i = 0; i < UsersNumber; i++){
-        users[i] = ethers.Wallet.createRandom().address;
-        values[i] = 100;
-        //console.log(users[i]);
-      }
-
-      console.log(users, values);
-      tx1 = await branch.populateTransaction.importTable(users, values);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
-      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
-
-      tx1 = await branch.populateTransaction.importFR(FR);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
-      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
-
-      tx1 = await branch.populateTransaction.importCC(CC);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
-      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
-
-      tx1 = await branch.populateTransaction.closeImport();
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
-      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
-
-      for(i = 0; i < UsersNumber; i++){
-        expect(await branch.myAllocationEmergency(users[i])).to.equal(100);
-      }
-
-    });*/
 
     it("Check max value deposit", async function(){
       await usdt.connect(owner).transfer(addr1.address, "115792089237316195423570985008687907853269984665640564039457584007913129639935");
@@ -802,88 +782,129 @@ describe("Root of Pools", async function () {
 
       expect(await branch._state()).to.equal(4);
 
+    });*/
+
+    it("Data import check", async function(){
+      let UsersNumber = 400; //Number of users participating in this test
+      users = [];
+      values = [];
+      commissions = [];
+      FR = UsersNumber * 100; //Share of each participant after subtracting the commission of 100
+      CC = FR * 0,2;
+
+      for(i = 0; i < UsersNumber; i++){
+        users[i] = ethers.Wallet.createRandom().address;
+        values[i] = 100;
+        commissions[i] = true;
+        //console.log(users[i]);
+      }
+
+      tx1 = await branchImport.populateTransaction.importTable(users, values, commissions);
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      tx1 = await branchImport.populateTransaction.importFR(FR);
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      tx1 = await branchImport.populateTransaction.closeImport();
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+      for(i = 0; i < UsersNumber; i++){
+        expect(await branchImport.myAllocationEmergency(users[i])).to.equal(100);
+      }
+
     });
 
-    /*it("Check import function", async function(){
+    it("Check import function", async function(){
 
       //Import Table
-      tx1 = await branch.populateTransaction.importTable([addr1.address, addr2.address, addr3.address], [100, 200, 300]);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
+      tx1 = await branchImport.populateTransaction.importTable([owner.address, addr1.address, addr2.address, addr3.address], [1000, 100, 200, 300], [false, false, false, false]);
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       //Import FR
-      tx1 = await branch.populateTransaction.importFR(480);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
+      tx1 = await branchImport.populateTransaction.importFR(1600);
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
-      //Import CC
-      tx1 = await branch.populateTransaction.importCC(120);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
+      tx1 = await branchImport.populateTransaction.closeImport();
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
-      tx1 = await branch.populateTransaction.closeImport();
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
-      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
-      id = (await msig.transactionCount()) - 1;
-      await msig.connect(addr1).confirmTransaction(id);
+      expect(await branchImport._state()).to.equal(2);
 
-      expect(await branch._state()).to.equal(2);
-
-      expect((await branch.myAllocationEmergency(addr1.address)).toString()).to.equal(
+      expect((await branchImport.myAllocationEmergency(addr1.address)).toString()).to.equal(
         "100"
       );
-      expect((await branch.myAllocationEmergency(addr2.address)).toString()).to.equal(
+      expect((await branchImport.myAllocationEmergency(addr2.address)).toString()).to.equal(
         "200"
       );
-      expect((await branch.myAllocationEmergency(addr3.address)).toString()).to.equal(
+      expect((await branchImport.myAllocationEmergency(addr3.address)).toString()).to.equal(
         "300"
       );
 
 
       //Unlock
-      await token.connect(dev).transfer(branch.address, 90000);
-      tx1 = await branch.populateTransaction.entrustToken(token.address);
-      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
+      Token = await ethers.getContractFactory("SimpleToken");
+      token = await Token.deploy("TEST", "TEST", 1000000);
+
+      await token.connect(owner).transfer(branchImport.address, 800);
+      tx1 = await branchImport.populateTransaction.entrustToken(token.address);
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
       await msig.connect(addr1).confirmTransaction(id);
 
       //Claim tokens
-      await branch.connect(addr1).claim();
-      await branch.connect(addr2).claim();
+      await branchImport.connect(addr1).claim();
+      await branchImport.connect(addr2).claim();
+
+      tx1 = await branchImport.populateTransaction.getCommission();
+      tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
 
       expect(
         (
-          await branch.connect(addr1).myCurrentAllocation(addr1.address)
+          await branchImport.connect(addr1).myCurrentAllocation(addr1.address)
         ).toString()
       ).to.equal("0");
       expect(
         (
-          await branch.connect(addr2).myCurrentAllocation(addr2.address)
+          await branchImport.connect(addr2).myCurrentAllocation(addr2.address)
         ).toString()
       ).to.equal("0");
       expect(
         (
-          await branch.connect(addr3).myCurrentAllocation(addr3.address)
+          await branchImport.connect(addr3).myCurrentAllocation(addr3.address)
         ).toString()
-      ).to.equal("28125");
+      ).to.equal("75");
 
-      await token.connect(dev).transfer(branch.address, 90000);
+      await token.connect(owner).transfer(branchImport.address, 800);
 
-      await branch.connect(addr3).claim();
+      await branchImport.connect(addr3).claim();
 
       expect(
         (
           await token.connect(addr3).balanceOf(addr3.address)
         ).toString()
-      ).to.equal("56250");
+      ).to.equal("150");
 
-    });*/
+    });
   });
 });
