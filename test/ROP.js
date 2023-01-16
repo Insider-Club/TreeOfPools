@@ -139,7 +139,7 @@ describe("Root of Pools", async function () {
       expect(pools[0][1]).to.equal("Test");
     });
 
-    /*it("Emergency Stop Fundraising", async function () {
+    it("Emergency Stop Fundraising", async function () {
       //Give some usdt user addr1 and addr2
       await usdt.connect(owner).transfer(addr1.address, 1000000000); //1000 usdt
       await usdt.connect(owner).transfer(addr2.address, 1000000000);
@@ -185,7 +185,7 @@ describe("Root of Pools", async function () {
       expect((await usdt.balanceOf(addr2.address)).toString()).to.equal(
         "1000000000"
       );
-    });*/
+    });
 
     it("Should be through a full cycle of deposit and mandatory completion of collection with a double unlocks", async function () {
       //Give some usdt user addr1 and addr2
@@ -397,7 +397,7 @@ describe("Root of Pools", async function () {
       );
     });
 
-    /*it("Checking basic math", async function () {
+    it("Checking basic math", async function () {
       a = 100000000; //Колличество денег
       b = 200000000;
       c = 300000000;
@@ -488,7 +488,7 @@ describe("Root of Pools", async function () {
         ).toString()
       ).to.equal(c_tpu.toString());*/
 
-      /*console.log(await branch.connect(addr1).myCurrentAllocation(addr1.address))
+      console.log(await branch.connect(addr1).myCurrentAllocation(addr1.address))
       console.log(await branch.connect(addr2).myCurrentAllocation(addr2.address))
       console.log(await branch.connect(addr3).myCurrentAllocation(addr3.address))
       console.log(await branch.connect(owner).myCurrentAllocation(owner.address))
@@ -782,7 +782,7 @@ describe("Root of Pools", async function () {
 
       expect(await branch._state()).to.equal(4);
 
-    });*/
+    });
 
     it("Data import check", async function(){
       let UsersNumber = 400; //Number of users participating in this test
