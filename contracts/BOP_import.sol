@@ -47,6 +47,7 @@ contract BranchOfPools_import is Initializable {
     uint256 public _outCommission;
     uint256 public _preSend;
 
+    uint256 public _CURRENT_COMMISSION;
     uint256 public _CURRENT_VALUE;
     uint256 public _FUNDS_RAISED;
     uint256 public _CURRENT_VALUE_TOKEN;
@@ -162,6 +163,13 @@ contract BranchOfPools_import is Initializable {
         uint256 fundsRaised
     ) external onlyState(State.Pause) onlyOwner returns (bool) {
         _FUNDS_RAISED = fundsRaised;
+        return true;
+    }
+
+    function importCC(
+        uint256 currentCommission
+    ) external onlyState(State.Pause) onlyOwner returns (bool) {
+        _CURRENT_COMMISSION = currentCommission;
         return true;
     }
 
@@ -286,13 +294,22 @@ contract BranchOfPools_import is Initializable {
                 }
             }
 
-            //_mamrktingOut == _issuedTokens[address(0)]
-            uint256 toMarketing = ((value * 15) / 100) -
-                _issuedTokens[address(0)]; //A?
+            uint256 tmp = ((_FUNDS_RAISED + _CURRENT_COMMISSION) * 15) / 100;
+
+            uint256 toMarketing = ((tmp * value) / _FUNDS_RAISED) -
+                _issuedTokens[address(0)];
             _issuedTokens[address(0)] += toMarketing;
 
-            ////_tamOut == _issuedTokens[address(1)]
-            uint256 toTeam = ((value * 2) / 100) - _issuedTokens[address(1)]; //B?
+            /*//_mamrktingOut == _issuedTokens[address(0)]
+            uint256 toMarketing = ((value * 15) / 100) -
+                _issuedTokens[address(0)]; //A?
+            _issuedTokens[address(0)] += toMarketing;*/
+
+            tmp = ((_FUNDS_RAISED + _CURRENT_COMMISSION) * 2) / 100;
+            uint256 toTeam = ((tmp * value) / _FUNDS_RAISED) -
+                _issuedTokens[address(1)];
+
+            //uint256 toTeam = ((value * 2) / 100) - _issuedTokens[address(1)]; //B?
             _issuedTokens[address(1)] += toTeam;
 
             _DISTRIBUTED_TOKEN += toMarketing + toTeam;

@@ -270,14 +270,14 @@ describe("Root of Pools", async function () {
       );
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "7634" //bfor 33750
+        "5902" //bfor 33750
       );
 
       expect((await token.balanceOf(mark.address)).toString()).to.equal(
-        "13500" //marketing
+        "16556" //marketing
       );
       expect((await token.balanceOf(team.address)).toString()).to.equal(
-        "1800" //team wallet
+        "2207" //team wallet
       );
 
       await branch.connect(addr2).claim();
@@ -287,17 +287,17 @@ describe("Root of Pools", async function () {
         "21226"
       );
       expect((await token.balanceOf(mark.address)).toString()).to.equal(
-        "13500" //marketing
+        "16556" //marketing
       );
       expect((await token.balanceOf(team.address)).toString()).to.equal(
-        "1800" //team wallet
+        "2207" //team wallet
       );
       expect((await token.balanceOf(addr2.address)).toString()).to.equal(
         "21226"
       );
 
       expect((await token.balanceOf(branch.address)).toString()).to.equal(
-        "8490"
+        "8491"
       );
 
       expect(
@@ -335,7 +335,7 @@ describe("Root of Pools", async function () {
         (
           await branch.connect(addr2).myCurrentAllocation(addr2.address)
         ).toString()
-      ).to.equal("21226");
+      ).to.equal("21227");
 
       await branch.connect(addr1).claim();
       await branch.connect(addr2).claim();
@@ -369,10 +369,10 @@ describe("Root of Pools", async function () {
         ).toString()
       ).to.equal("0");
       expect((await token.balanceOf(addr1.address)).toString()).to.equal(
-        "42452"
+        "42453"
       );
       expect((await token.balanceOf(addr2.address)).toString()).to.equal(
-        "42452"
+        "42453"
       );
       expect((await token.balanceOf(addr3.address)).toString()).to.equal(
         "16981"
@@ -381,16 +381,16 @@ describe("Root of Pools", async function () {
         "16981"
       );
       expect((await token.balanceOf(mark.address)).toString()).to.equal(
-        "27000"
+        "33113"
       );
       expect((await token.balanceOf(team.address)).toString()).to.equal(
-        "3600"
+        "4415"
       );
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "15267"
+        "11802"
       );
       expect((await token.balanceOf(root.address)).toString()).to.equal(
-        "15267"
+        "11802"
       );
       expect((await token.balanceOf(branch.address)).toString()).to.equal(
         "0"
@@ -402,7 +402,7 @@ describe("Root of Pools", async function () {
       b = 200000000;
       c = 300000000;
       d = 100000000;
-      del_tokens = 2900; //Колличество токенов от разработчиков за 1 раз разлока
+      del_tokens = 290; //Колличество токенов от разработчиков за 1 раз разлока
 
       a_k = Math.floor(a - a * 0.2); //С комиссиями
       b_k = Math.floor(b - b * 0.2);
@@ -495,7 +495,7 @@ describe("Root of Pools", async function () {
       
       //Claim tokens
       await root.connect(addr1).claimName("Test");
-      await root.connect(addr3).claimName("Test");
+      await root.connect(addr2).claimName("Test");
 
       //Next unlocks
       await token.connect(dev).transfer(branch.address, del_tokens);
@@ -511,6 +511,13 @@ describe("Root of Pools", async function () {
       await branch.connect(owner).claim();
       await root.connect(addr3).claimName("Test");
 
+      tx1 = await branch.populateTransaction.getCommission();
+      tx2 = await root.populateTransaction.Calling(branch.address, tx1.data);
+      await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
+      id = (await msig.transactionCount()) - 1;
+      await msig.connect(addr1).confirmTransaction(id);
+
+
 
       console.log("Msig - ",await token.balanceOf(msig.address));
 
@@ -519,6 +526,9 @@ describe("Root of Pools", async function () {
       console.log("Addr3 - ",await token.balanceOf(addr3.address));
       console.log("Addr4 - ",await token.balanceOf(owner.address));
       console.log("Branch - ",await token.balanceOf(branch.address));
+      console.log("Marketing - ",await token.balanceOf(mark.address));
+      console.log("Team - ",await token.balanceOf(team.address));
+      console.log("MarketingWallet(msig) - ",await token.balanceOf(root.address));
       console.log("CC - ", await branch._CURRENT_COMMISSION());
     });
 
@@ -734,7 +744,7 @@ describe("Root of Pools", async function () {
       await msig.connect(addr1).confirmTransaction(id);
 
       expect((await token.balanceOf(msig.address)).toString()).to.equal(
-        "18450"
+        "14625"
       );
     });
 
@@ -826,7 +836,7 @@ describe("Root of Pools", async function () {
     it("Check import function", async function(){
 
       //Import Table
-      tx1 = await branchImport.populateTransaction.importTable([owner.address, addr1.address, addr2.address, addr3.address], [1000, 100, 200, 300], [false, false, false, false]);
+      tx1 = await branchImport.populateTransaction.importTable([owner.address, addr1.address, addr2.address, addr3.address], [1000, 100, 200, 300], [false, true, false, false]);
       tx2 = await root.populateTransaction.Calling(branchImport.address, tx1.data);
       await msig.connect(owner).submitTransaction(root.address, 0, tx2.data);
       id = (await msig.transactionCount()) - 1;
