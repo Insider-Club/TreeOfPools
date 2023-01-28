@@ -528,7 +528,7 @@ describe("Root of Pools", async function () {
       console.log("Branch - ",await token.balanceOf(branch.address));
       console.log("Marketing - ",await token.balanceOf(mark.address));
       console.log("Team - ",await token.balanceOf(team.address));
-      console.log("MarketingWallet(msig) - ",await token.balanceOf(root.address));
+      console.log("MarketingWallet - ",await token.balanceOf(root.address));
       console.log("CC - ", await branch._CURRENT_COMMISSION());
     });
 
@@ -805,7 +805,7 @@ describe("Root of Pools", async function () {
       for(i = 0; i < UsersNumber; i++){
         users[i] = ethers.Wallet.createRandom().address;
         values[i] = 100;
-        commissions[i] = true;
+        commissions[i] = false;
         //console.log(users[i]);
       }
 

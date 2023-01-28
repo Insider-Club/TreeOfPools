@@ -24,8 +24,8 @@ module.exports = {
       accounts: [PK, PK2],
       gas: 21000000,
     },
-    goerli:{
-      url: `https://eth-goerli.public.blastapi.io`,
+    testpolygon:{
+      url: `https://rpc.ankr.com/polygon_mumbai`,
       accounts: [PK, PK2],
       gas: 2100000,
     },

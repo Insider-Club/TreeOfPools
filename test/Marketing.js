@@ -35,6 +35,7 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
 
         it("Full cycle", async function(){
             await mark.connect(owner).setProjectAmounts("Test", [addr2.address, addr3.address, addr4.address], [1000000, 500000, 500000]);
+            // await mark.connect(owner).setProjectAmounts("Test", [addr2.address], [2000000]);
 
             expect((await mark.connect(addr2).getUserAmount("Test", addr2.address)).toString()).to.equal("1000000");
             expect((await mark.connect(addr3).getUserAmount("Test", addr3.address)).toString()).to.equal("500000");
@@ -45,6 +46,8 @@ const { duration } = require("@openzeppelin/test-helpers/src/time");
             await mark.connect(addr2).claim("Test");
             await mark.connect(addr3).claim("Test");
             await mark.connect(addr4).claim("Test");
+
+            console.log(addr2.address, " ",addr3.address)
 
 
             expect((await usdt.balanceOf(addr2.address)).toString()).to.equal("500000");

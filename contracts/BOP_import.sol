@@ -143,14 +143,10 @@ contract BranchOfPools_import is Initializable {
         );
 
         for (uint256 i; i < usersData.length; i++) {
-            _usdEmergency[usersData[i]] = usersAmount[i];
+            _usdEmergency[usersData[i]] += usersAmount[i];
             _withoutCommission[usersData[i]] = commissions[i];
+            _listParticipants.push(usersData[i]);
         }
-
-        //Not all information is transferred to save gas
-        //Implications: It is not possible to fully import data from here
-        //To capture all the information you need to replenish this array with the right users
-        //_listParticipants = usersData;
 
         return true;
     }

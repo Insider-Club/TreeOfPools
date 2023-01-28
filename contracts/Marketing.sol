@@ -36,14 +36,18 @@ contract Marketing is Ownable {
     function findUser(
         string calldata _name,
         address _user
-    ) internal view returns (uint256) {
+    ) internal view returns (User memory) {
         Project storage project = Projects[_name];
+        User memory user;
 
         for (uint256 i = 0; i < project.users.length; i++) {
             if (project.users[i].userAdr == _user) {
-                return i;
+                user = project.users[i];
+                return user;
             }
         }
+
+        return user;
     }
 
     function getProject(
@@ -74,7 +78,7 @@ contract Marketing is Ownable {
         string calldata _name,
         address _user
     ) public view returns (uint256) {
-        return Projects[_name].users[findUser(_name, _user)].amount;
+        return findUser(_name, _user).amount;
     }
 
     function getTotalValue(
@@ -138,9 +142,12 @@ contract Marketing is Ownable {
     function claim(string calldata _name) public {
         Project storage project = Projects[_name];
         require(project.users.length != 0, "Unknown project");
-        uint256 userId = findUser(_name, msg.sender);
+        User memory user = findUser(_name, msg.sender);
+        if (user.userAdr == address(0)) {
+            return;
+        }
 
-        uint256 amount = project.users[userId].amount;
+        uint256 amount = user.amount;
         require(amount != 0, "You are not a participant");
 
         uint256 totalValue = project.totalValue;
@@ -153,10 +160,9 @@ contract Marketing is Ownable {
         }
 
         uint256 toSend = ((Projects[_name].currentTotalValue * amount) /
-            totalValue) - project.withdrawn[project.users[userId].userAdr];
+            totalValue) - project.withdrawn[user.userAdr];
 
-        project.withdrawn[project.users[userId].userAdr] += toSend;
-
+        Projects[_name].withdrawn[user.userAdr] += toSend;
         Projects[_name].totalWithdrawn += toSend;
 
         require(
